@@ -1,0 +1,18 @@
+Problemer med kodebasen:
+
+High Priority:
+- SQL injection .. prepared statements?
+- Development key, kan man sætte den ind som environment variable
+- Http / https? (Session Hijacking)
+- Hashing med md5 :( outdated.
+
+Medium:
+- kun validering af @ I email.
+- Username harvesting "username already taken"
+- Variable navne generelt.
+- Validering af brugerinput / kan man injecte her?
+
+Low:
+- Opdeling filer.
+- Single responsibility.
+- HTML: crazy. %labels.
