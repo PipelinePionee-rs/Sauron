@@ -1,7 +1,7 @@
 # Sauron Search Engine
 
 ## Overview
-This is a search engine that allows users to search for keywords in coding languages. The program is written in Rust with Auxum. 
+This is a search engine that allows users to search for keywords in coding languages. The program is written in Rust with Axum. 
 
 ## Features
 Are yet to be described..
