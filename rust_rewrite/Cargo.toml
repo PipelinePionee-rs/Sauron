@@ -4,4 +4,16 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-utoipa = "5.3.1"
+utoipa = "5.3.1" # for generating OpenApi specs
+utoipa-axum = "0.2" # extension for working with axum
+
+axum = "0.8.1" # web framework
+axum-macros = "0.5.0" # macros for axum duh
+
+tokio = { version = "1.42.0", features = ["full"] } # features set to full to enable multithreading
+hyper = "1.5.2" # HTTP library
+
+tower = "0.5.2" # networking library used by hyper
+tower-http = "0.6.2" # HTTP service abstraction
+
+serde = "1.0.217" # serialization library
