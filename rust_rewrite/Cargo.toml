@@ -17,3 +17,4 @@ tower = "0.5.2" # networking library used by hyper
 tower-http = "0.6.2" # HTTP service abstraction
 
 serde = "1.0.217" # serialization library
+utoipa-swagger-ui = { version = "9.0.0", features = ["axum"] }
