@@ -19,6 +19,8 @@ tower-http = "0.6.2" # HTTP service abstraction
 serde = "1.0.217" # serialization library
 utoipa-swagger-ui = { version = "9.0.0", features = ["axum"] }
 
+tokio-rusqlite = "0.6.0" # async SQLite
+
 [dev-dependencies]
 anyhow = "1"
 httpc-test = "0.1.0" # for testing HTTP requests
