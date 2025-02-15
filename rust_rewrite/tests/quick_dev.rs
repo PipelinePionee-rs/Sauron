@@ -1,5 +1,7 @@
 #![allow(unused)]  // Silence warnings for dev purposes
 use anyhow::Result;
+use axum::Json;
+use serde_json::json;
 
 /// quick development test that will hit PATH on ADDRESS
 /// and print the response to the console
@@ -16,14 +18,24 @@ use anyhow::Result;
 /// this will run the test and print the output to the console
 /// every time you change/save the quick_dev file 
 
-const ADDRESS: &str = "http://127.0.0.1:8080";
-const PATH: &str = "/api/login"; // the path you're currently working on
+const ADDRESS: &str = "http://localhost:8080";
+const GET_PATH: &str = "/hello";
+const POST_PATH: &str = "/api/login";
 
 #[tokio::test]
-async fn quick_dev() -> Result<()> {
-
+async fn quick_get() -> Result<()> {
   let hc = httpc_test::new_client(ADDRESS)?;
-  hc.do_get(PATH).await?.print().await?;
-  Ok(())
-  
+  hc.do_get(GET_PATH).await?.print().await?;
+  Ok(()) 
+}
+
+#[tokio::test]
+async fn quick_post() -> Result<()> {
+  let hc = httpc_test::new_client(ADDRESS)?;
+  let body = json!({
+    "username": "admin",
+    "password": "password",
+  });
+    hc.do_post(POST_PATH, body).await?.print().await?;
+    Ok(())
 }
