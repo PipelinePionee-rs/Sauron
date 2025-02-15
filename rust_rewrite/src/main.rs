@@ -1,14 +1,19 @@
 #![allow(unused)]  // Silence warnings for dev purposes
 
+mod error;
 mod models;
 mod api;
+mod auth;
 use api::{api_search, api_login, api_register, api_logout};
+use tower_cookies::{CookieManager, CookieManagerLayer};
+
+pub use self::error::{Error, Result};
 
 use tokio::net::TcpListener;
 
-use axum::response::Html;
+use axum::response::{Html, Response};
 use axum::routing::{get, post};
-use axum::Router;
+use axum::{middleware, Router};
 
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -44,13 +49,19 @@ async fn main() {
 	let listener = TcpListener::bind("localhost:8080").await.unwrap();
 	println!("->> LISTENING on {:?}\n", listener.local_addr());
 
+
+  async fn main_response_mapper(res: Response) -> Response {
+    println!("->> {:<12} - main_response_mapper", "RES_MAPPER");
+    println!();
+    res
+  }
+
   let app = Router::new()
   .route("/hello", get(hello))
-  .route("/api/search", get(api_search))
-  .route("/api/login", post(api_login))
-  .route("/api/register", post(api_register))
-  .route("/api/logout", get(api_logout))
-  .merge(SwaggerUi::new("/swagger-ui").url("/api-doc/openapi.json", ApiDoc::openapi())); // add swagger ui, and openapi doc
+  .merge(api::routes() ) // merge the routes from api.rs
+  .merge(SwaggerUi::new("/swagger-ui").url("/api-doc/openapi.json", ApiDoc::openapi())) // add swagger ui, and openapi doc
+  .layer(CookieManagerLayer::new())
+  .layer(middleware::map_response(main_response_mapper));
 
   // start server 
   axum::serve(listener, app.into_make_service())
