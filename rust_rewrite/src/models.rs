@@ -16,3 +16,14 @@ pub struct Page {
   pub last_updated: String,
   pub content: String,
 }
+
+#[derive(Deserialize, ToSchema)]
+pub struct LoginRequest {
+    pub username: String,
+    pub password: String,
+}
+
+#[derive(Serialize, ToSchema)]
+pub struct LoginResponse {
+    pub token: String,
+}

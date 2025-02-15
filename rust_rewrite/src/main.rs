@@ -1,16 +1,15 @@
-// #![allow(unused)]  // Silence warnings for dev purposes
+#![allow(unused)]  // Silence warnings for dev purposes
 
-// import types from models.rs
 mod models;
-
 mod api;
-use api::api_search;
-
+use api::{api_search, api_login};
 
 use tokio::net::TcpListener;
+
 use axum::response::Html;
-use axum::routing::get;
+use axum::routing::{get, post};
 use axum::Router;
+
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -21,7 +20,7 @@ use utoipa_swagger_ui::SwaggerUi;
 // this generates OpenAPI documentation for the paths specified? i think
 // so if we want to add more paths, we just do #[openapi(paths(path1, path2, path3))]
 #[derive(OpenApi)] // this attribute derives the OpenApi impl for the struct
-#[openapi(paths(hello, api::api_search))] // this attribute specifies the paths that will be documented
+#[openapi(paths(hello, api::api_search, api::api_login))] // this attribute specifies the paths that will be documented
 // structs are like classes in Java, but without methods
 struct ApiDoc; // this is the struct that will be used to generate the OpenAPI documentation
 
@@ -40,8 +39,6 @@ async fn hello() -> Html<&'static str> {
 
 #[tokio::main]
 async fn main() {
-  println!("The Eye of Sauron is opening...");
-
   // sets server to listen on localhost:8080
 	let listener = TcpListener::bind("localhost:8080").await.unwrap();
 	println!("->> LISTENING on {:?}\n", listener.local_addr());
@@ -50,7 +47,8 @@ async fn main() {
   let app = Router::new()
   //.route("/hello", get(hello))
   .route("/hello", get(hello))
-  .route("/search", get(api_search))
+  .route("/api/search", get(api_search))
+  .route("/api/login", post(api_login))
   .merge(SwaggerUi::new("/swagger-ui").url("/api-doc/openapi.json", ApiDoc::openapi())); // add swagger ui, and openapi doc
 
   // start server 

@@ -20,6 +20,7 @@ serde = "1.0.217" # serialization library
 utoipa-swagger-ui = { version = "9.0.0", features = ["axum"] }
 
 tokio-rusqlite = "0.6.0" # async SQLite
+serde_json = "1.0.138"
 
 [dev-dependencies]
 anyhow = "1"

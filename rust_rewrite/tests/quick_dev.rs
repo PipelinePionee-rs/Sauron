@@ -17,7 +17,7 @@ use anyhow::Result;
 /// every time you change/save the quick_dev file 
 
 const ADDRESS: &str = "http://127.0.0.1:8080";
-const PATH: &str = "/search"; // the path you're currently working on
+const PATH: &str = "/api/login"; // the path you're currently working on
 
 #[tokio::test]
 async fn quick_dev() -> Result<()> {
