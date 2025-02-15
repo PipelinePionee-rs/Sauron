@@ -4,6 +4,9 @@
 mod models;
 use models::{QueryParams, Page};
 
+mod api;
+use api::api_search;
+
 
 use tokio::net::TcpListener;
 use axum::{response::Html, Json};
@@ -23,27 +26,10 @@ use axum::response::IntoResponse;
 // this generates OpenAPI documentation for the paths specified? i think
 // so if we want to add more paths, we just do #[openapi(paths(path1, path2, path3))]
 #[derive(OpenApi)] // this attribute derives the OpenApi impl for the struct
-#[openapi(paths(hello, api_search))] // this attribute specifies the paths that will be documented
+#[openapi(paths(hello, api::api_search))] // this attribute specifies the paths that will be documented
 // structs are like classes in Java, but without methods
 struct ApiDoc; // this is the struct that will be used to generate the OpenAPI documentation
 
-
-#[utoipa::path(get,
-   path = "/search", responses(
-    (status = 200, description = "Search results", body = Page),
-  )
-)]
-async fn api_search(Query(query): Query<QueryParams>) -> impl IntoResponse {
-  // For demonstration purposes, we build a dummy Page based on the query.
-  let page = Page {
-      title: format!("Title for page {}", query.q),
-      url: format!("https://example.com/page/{}", query.q),
-      language: "en".to_string(),
-      last_updated: "2025-02-15".to_string(),
-      content: format!("Content of page {}", query.q),
-  };
-  Json(page)
-}
 
 // this is the function that will be called when the path is hit
 // here we define the path, the response status, the response description, and the response body
