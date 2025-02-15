@@ -1,23 +1,18 @@
-#![allow(unused)]  // Silence warnings for dev purposes
+// #![allow(unused)]  // Silence warnings for dev purposes
 
 // import types from models.rs
 mod models;
-use models::{QueryParams, Page};
 
 mod api;
 use api::api_search;
 
 
 use tokio::net::TcpListener;
-use axum::{response::Html, Json};
+use axum::response::Html;
 use axum::routing::get;
 use axum::Router;
-use axum::extract::Query;
-use utoipa::{OpenApi, ToSchema};
-use utoipa_axum::{routes, PathItemExt, router::OpenApiRouter};
+use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
-use serde::{Serialize, Deserialize};
-use axum::response::IntoResponse;
 
 /// to access the interactive OpenAPI documentation, go to localhost:8080/swagger-ui
 /// to access the OpenAPI JSON, go to localhost:8080/api-doc/openapi.json

@@ -1,6 +1,6 @@
 use crate::models::{QueryParams, Page};
 
-use axum::{Json, Router};
+use axum::Json;
 use axum::extract::Query;
 use axum::response::IntoResponse;
 
