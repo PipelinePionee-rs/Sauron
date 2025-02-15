@@ -4,17 +4,17 @@ mod error;
 mod models;
 mod api;
 mod auth;
+
 use api::{api_search, api_login, api_register, api_logout};
 use tower_cookies::{CookieManager, CookieManagerLayer};
 
 pub use self::error::{Error, Result};
-
 use tokio::net::TcpListener;
-
-use axum::response::{Html, Response};
-use axum::routing::{get, post};
-use axum::{middleware, Router};
-
+use axum::{
+  response::{Html, Response},
+  routing::{get, post},
+  middleware, Router,
+};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 

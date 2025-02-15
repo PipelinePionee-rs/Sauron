@@ -109,8 +109,8 @@ pub async fn api_register(cookies: Cookies, payload: Json<RegisterRequest>) -> i
   if (valid_credentials()) {
     let response = json!({
       "message": "User registered successfully",
-      "token": "dummy-token".to_string(),
     });
+    
     cookies.add(Cookie::new(AUTH_TOKEN, "user-1.exp.sign"));
     (StatusCode::CREATED, Json(response))
   } else {

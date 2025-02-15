@@ -1,6 +1,5 @@
 use password_worker::*;
-use crate::Error;
-use crate::Result;
+use crate::{Result, Error};
 /// i think this works, but i'm not sure
 
 // hash_password takes a password string and returns a hashed password string
