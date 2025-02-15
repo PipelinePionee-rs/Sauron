@@ -20,10 +20,12 @@ use hyper::StatusCode;
 use serde_json::{json, Value};
 use tower_cookies::{Cookie, Cookies};
 use utoipa::openapi::request_body::RequestBody;
-
+use crate::auth::{self, hash_password};
 
 pub const AUTH_TOKEN: &str = "auth-token";
 
+// squashes all the routes into one function
+// so we can merge them into the main router
 pub fn routes() -> Router {
   Router::new()
   .route("/api/login", post(api_login))
@@ -66,6 +68,10 @@ pub async fn api_search(Query(query): Query<QueryParams>) -> impl IntoResponse {
 /// TODO: will need to hash the password and check against a database
 /// TODO: will need to generate a real token
 pub async fn api_login(cookies: Cookies, payload: Json<LoginRequest>) -> Result<Json<Value>> {
+
+  let hashed_password = hash_password(&payload.password).await?;
+  println!("hashed_password: {:?}", hashed_password);
+  let is_correct = auth::verify_password(&payload.password, &hashed_password).await?;
   if payload.username != "admin" || payload.password != "password" {
     return Err(Error::LoginFail);
   }

@@ -1,9 +1,10 @@
 use password_worker::*;
-
+use crate::Error;
+use crate::Result;
 /// i think this works, but i'm not sure
 
 // hash_password takes a password string and returns a hashed password string
-async fn hash_password(pwd: &str) -> Result<String, Box<dyn std::error::Error>> {
+pub async fn hash_password(pwd: &str) -> Result<String> {
   let cost = 12;
   let max_threads = 4;
   let password_worker = PasswordWorker::new_bcrypt(max_threads)?;
@@ -15,7 +16,7 @@ async fn hash_password(pwd: &str) -> Result<String, Box<dyn std::error::Error>> 
 /// and returns a boolean indicating whether the password is valid
 /// pwd is the password from login attempt,
 /// dbpwd is the hashed password from the database
-async fn verify_password(pwd: &str, dbpwd: &str) -> Result<bool, Box<dyn std::error::Error>> {
+pub async fn verify_password(pwd: &str, dbpwd: &str) -> Result<bool> {
   let cost = 12;
   let max_threads = 4;
   let password_worker = PasswordWorker::new_bcrypt(max_threads)?;

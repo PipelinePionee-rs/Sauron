@@ -58,7 +58,7 @@ async fn main() {
 
   let app = Router::new()
   .route("/hello", get(hello))
-  .merge(api::routes() ) // merge the routes from api.rs
+  .merge(api::routes()) // merge the routes from api.rs
   .merge(SwaggerUi::new("/swagger-ui").url("/api-doc/openapi.json", ApiDoc::openapi())) // add swagger ui, and openapi doc
   .layer(CookieManagerLayer::new())
   .layer(middleware::map_response(main_response_mapper));
