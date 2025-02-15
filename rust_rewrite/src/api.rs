@@ -1,4 +1,4 @@
-use crate::models::{QueryParams, Page, LoginRequest, LoginResponse};
+use crate::models::{QueryParams, Page, LoginRequest, LoginResponse, Data};
 
 use axum::Json;
 use axum::extract::Query;
@@ -7,22 +7,23 @@ use hyper::StatusCode;
 use serde_json::json;
 
 #[utoipa::path(get,
-  path = "/api/search", responses(
-   (status = 200, description = "Search results", body = Page),
- )
+  path = "/api/search",
+  params(
+    // "q" is taken from QueryParams
+    ("q" = String, Query, description = "Search query parameter"),
+    ("lang" = Option<String>, Query, description = "Language parameter"),
+),
+   responses(
+   (status = 200, description = "Search successful", body = Data),
+   (status = 422, description = "Invalid search query", body = String),
+ ),
 )]
-/// this is a dummy search function that returns a dummy page
-/// with the search query as the title and content
 /// Will need to expand when we have a database
 pub async fn api_search(Query(query): Query<QueryParams>) -> impl IntoResponse {
- let page = Page {
-     title: format!("Title for page {}", query.q),
-     url: format!("https://example.com/page/{}", query.q),
-     language: "en".to_string(),
-     last_updated: "2025-02-15".to_string(),
-     content: format!("Content of page {}", query.q),
- };
- Json(page)
+  let data = json!({
+    "data": [],
+  });
+ Json(data)
 }
 
 

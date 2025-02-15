@@ -1,10 +1,12 @@
 use axum::response::IntoResponse;
 use serde::{Serialize, Deserialize};
 use utoipa::ToSchema;
+use std::collections::HashMap;
 
 #[derive(Deserialize)]
 pub struct QueryParams {
   pub q: String,
+  pub lang: Option<String>,
 }
 
 // ToSchema generates a tab in /swagger-ui for the struct
@@ -26,4 +28,9 @@ pub struct LoginRequest {
 #[derive(Serialize, ToSchema)]
 pub struct LoginResponse {
     pub token: String,
+}
+
+#[derive(Serialize, ToSchema)]
+pub struct Data {
+    pub data: Vec<Page>,
 }
