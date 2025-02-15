@@ -30,6 +30,19 @@ pub struct LoginResponse {
     pub token: String,
 }
 
+#[derive(Deserialize, ToSchema)]
+pub struct RegisterRequest {
+    pub username: String,
+    pub email: String,
+    pub password: String,
+    
+}
+
+#[derive(Serialize, ToSchema)]
+pub struct RegisterResponse {
+    pub message: String,
+}
+
 #[derive(Serialize, ToSchema)]
 pub struct Data {
     pub data: Vec<Page>,
