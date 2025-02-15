@@ -13,6 +13,7 @@ use axum::extract::Query;
 use axum::response::IntoResponse;
 use hyper::StatusCode;
 use serde_json::json;
+use utoipa::openapi::request_body::RequestBody;
 
 #[utoipa::path(get,
   path = "/api/search",
@@ -39,7 +40,8 @@ pub async fn api_search(Query(query): Query<QueryParams>) -> impl IntoResponse {
   path = "/api/login", responses(
    (status = 200, description = "Login successful", body = LoginResponse),
    (status = 401, description = "Invalid credentials", body = String),
- )
+ ),
+ request_body = LoginRequest,
 )]
 /// for now, this just accepts a hardcoded username and password
 /// and returns a dummy token in json format
@@ -59,10 +61,12 @@ pub async fn api_login(Json(payload): Json<LoginRequest>) -> impl IntoResponse {
 
 #[utoipa::path(post,
   path = "/api/register", responses(
-   (status = 201, description = "User registered successfully", body = RegisterResponse),
+   (status = 200, description = "User registered successfully", body = RegisterResponse),
    (status = 401, description = "Invalid credentials", body = String),
+  ),
+   request_body = RegisterRequest,
  )
-)]
+]
 pub async fn api_register(Json(payload): Json<RegisterRequest>) -> impl IntoResponse {
   // TODO: will need to hash the password and save to a database
   // TODO: will need to generate a real token
