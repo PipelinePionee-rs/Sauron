@@ -11,13 +11,13 @@ use anyhow::Result;
 /// 
 /// and run the test with a separate terminal:
 /// 
-/// cargo watch -q -c -w tests/ -x "test -q quick_dev -- --nocapture"
+/// cargo watch -q -c -w src/ -x "test -q quick_dev -- --nocapture"
 /// 
 /// this will run the test and print the output to the console
 /// every time you change/save the quick_dev file 
 
-const ADDRESS: &str = "http://localhost:8080";
-const PATH: &str = "/hello";
+const ADDRESS: &str = "http://127.0.0.1:8080";
+const PATH: &str = "/jsontest"; // the path you're currently working on
 
 #[tokio::test]
 async fn quick_dev() -> Result<()> {
