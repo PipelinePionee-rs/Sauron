@@ -1,4 +1,12 @@
-use crate::models::{QueryParams, Page, LoginRequest, LoginResponse, Data};
+use crate::models::{
+  QueryParams, 
+  Page, 
+  LoginRequest, 
+  LoginResponse, 
+  RegisterRequest, 
+  RegisterResponse, 
+  Data
+};
 
 use axum::Json;
 use axum::extract::Query;
@@ -46,5 +54,34 @@ pub async fn api_login(Json(payload): Json<LoginRequest>) -> impl IntoResponse {
   } else {
       (StatusCode::UNAUTHORIZED, Json(json!({"error": "Invalid credentials"})))
   }
+}
+
+
+#[utoipa::path(post,
+  path = "/api/register", responses(
+   (status = 201, description = "User registered successfully", body = RegisterResponse),
+   (status = 401, description = "Invalid credentials", body = String),
+ )
+)]
+pub async fn api_register(Json(payload): Json<RegisterRequest>) -> impl IntoResponse {
+  // TODO: will need to hash the password and save to a database
+  // TODO: will need to generate a real token
+
+  // dummy function to check if credentials are valid
+  // will need to check against db when its working
+  fn valid_credentials() -> bool {
+    true
+  }
+
+  if (valid_credentials()) {
+    let response = json!({
+      "message": "User registered successfully",
+      "token": "dummy-token".to_string(),
+    });
+    (StatusCode::CREATED, Json(response))
+  } else {
+    (StatusCode::UNAUTHORIZED, Json(json!({"error": "Invalid credentials"})))
+  }
+  
 }
      
