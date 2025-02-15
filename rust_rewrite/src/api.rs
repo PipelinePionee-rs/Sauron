@@ -1,3 +1,4 @@
+// import models from models.rs
 use crate::models::{
   QueryParams, 
   Page, 
@@ -15,10 +16,11 @@ use hyper::StatusCode;
 use serde_json::json;
 use utoipa::openapi::request_body::RequestBody;
 
+
+
 #[utoipa::path(get,
   path = "/api/search",
   params(
-    // "q" is taken from QueryParams
     ("q" = String, Query, description = "Search query parameter"),
     ("lang" = Option<String>, Query, description = "Language parameter"),
 ),
@@ -29,6 +31,7 @@ use utoipa::openapi::request_body::RequestBody;
 )]
 /// Will need to expand when we have a database
 pub async fn api_search(Query(query): Query<QueryParams>) -> impl IntoResponse {
+  // accepts 'q' and 'lang' query parameters
   let data = json!({
     "data": [],
   });
@@ -88,4 +91,13 @@ pub async fn api_register(Json(payload): Json<RegisterRequest>) -> impl IntoResp
   }
   
 }
-     
+
+#[utoipa::path(get, 
+path = "/api/logout", responses(
+  (status = 200, description = "Logout successful", body = String),
+),
+)]
+pub async fn api_logout() -> impl IntoResponse {
+  (StatusCode::OK, Json(json!({"message": "Logout successful"})))
+  // maybe remove token or smth here??
+}

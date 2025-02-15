@@ -2,7 +2,7 @@
 
 mod models;
 mod api;
-use api::{api_search, api_login};
+use api::{api_search, api_login, api_register, api_logout};
 
 use tokio::net::TcpListener;
 
@@ -21,7 +21,7 @@ use utoipa_swagger_ui::SwaggerUi;
 // this generates OpenAPI documentation for the paths specified? i think
 // so if we want to add more paths, we just do #[openapi(paths(path1, path2, path3))]
 #[derive(OpenApi)] // this attribute derives the OpenApi impl for the struct
-#[openapi(paths(hello, api::api_search, api::api_login, api::api_register))] // this attribute specifies the paths that will be documented
+#[openapi(paths(hello, api::api_search, api::api_login, api::api_register, api::api_logout))] // this attribute specifies the paths that will be documented
 // structs are like classes in Java, but without methods
 struct ApiDoc; // this is the struct that will be used to generate the OpenAPI documentation
 
@@ -44,12 +44,12 @@ async fn main() {
 	let listener = TcpListener::bind("localhost:8080").await.unwrap();
 	println!("->> LISTENING on {:?}\n", listener.local_addr());
 
-  // combine all routes into one with .merge()
   let app = Router::new()
-  //.route("/hello", get(hello))
   .route("/hello", get(hello))
   .route("/api/search", get(api_search))
   .route("/api/login", post(api_login))
+  .route("/api/register", post(api_register))
+  .route("/api/logout", get(api_logout))
   .merge(SwaggerUi::new("/swagger-ui").url("/api-doc/openapi.json", ApiDoc::openapi())); // add swagger ui, and openapi doc
 
   // start server 

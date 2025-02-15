@@ -19,7 +19,7 @@ use serde_json::json;
 /// every time you change/save the quick_dev file 
 
 const ADDRESS: &str = "http://localhost:8080";
-const GET_PATH: &str = "/hello";
+const GET_PATH: &str = "/api/logout";
 const POST_PATH: &str = "/api/login";
 
 #[tokio::test]
