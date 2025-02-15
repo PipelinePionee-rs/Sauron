@@ -25,17 +25,13 @@ const POST_PATH: &str = "/api/login";
 #[tokio::test]
 async fn quick_get() -> Result<()> {
   let hc = httpc_test::new_client(ADDRESS)?;
-  hc.do_get(GET_PATH).await?.print().await?;
-  Ok(()) 
-}
 
-#[tokio::test]
-async fn quick_post() -> Result<()> {
-  let hc = httpc_test::new_client(ADDRESS)?;
-  let body = json!({
+  hc.do_get(GET_PATH).await?.print().await?;
+
+  hc.do_post(POST_PATH, json!({
     "username": "admin",
     "password": "password",
-  });
-    hc.do_post(POST_PATH, body).await?.print().await?;
-    Ok(())
+  })).await?.print().await?;
+
+  Ok(()) 
 }
