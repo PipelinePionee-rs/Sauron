@@ -4,6 +4,7 @@ mod error;
 mod models;
 mod api;
 mod auth;
+mod db;
 
 use api::{api_search, api_login, api_register, api_logout};
 use tower_cookies::{CookieManager, CookieManagerLayer};
