@@ -28,10 +28,10 @@ pub const AUTH_TOKEN: &str = "auth-token";
 // so we can merge them into the main router
 pub fn routes() -> Router {
   Router::new()
-  .route("/api/login", post(api_login))
-  .route("/api/register", post(api_register))
-  .route("/api/logout", get(api_logout))
-  .route("/api/search", get(api_search))
+  .route("/login", post(api_login))
+  .route("/register", post(api_register))
+  .route("/logout", get(api_logout))
+  .route("/search", get(api_search))
 }
 
 
@@ -67,7 +67,7 @@ pub async fn api_search(Query(query): Query<QueryParams>) -> impl IntoResponse {
 /// and returns a dummy token in json format
 /// TODO: will need to hash the password and check against a database
 /// TODO: will need to generate a real token
-pub async fn api_login(cookies: Cookies, payload: Json<LoginRequest>) -> Result<Json<Value>> {
+pub async fn api_login(cookies: Cookies, payload: Json<LoginRequest>) -> impl IntoResponse {
 
   let hashed_password = hash_password(&payload.password).await?;
   println!("hashed_password: {:?}", hashed_password);
@@ -116,7 +116,7 @@ pub async fn api_register(cookies: Cookies, payload: Json<RegisterRequest>) -> i
   } else {
     (StatusCode::UNAUTHORIZED, Json(json!({"error": "Invalid credentials"})))
   }
-  
+
 }
 
 #[utoipa::path(get, 

@@ -19,8 +19,8 @@ use serde_json::json;
 /// every time you change/save the quick_dev file 
 
 const ADDRESS: &str = "http://localhost:8080";
-const GET_PATH: &str = "/api/logout";
-const POST_PATH: &str = "/api/login";
+const GET_PATH: &str = "/api/v1/logout";
+const POST_PATH: &str = "/api/v1/login";
 
 #[tokio::test]
 async fn quick_get() -> Result<()> {
@@ -33,5 +33,6 @@ async fn quick_get() -> Result<()> {
     "password": "password",
   })).await?.print().await?;
 
-  Ok(()) 
+  Ok(())
 }
+
