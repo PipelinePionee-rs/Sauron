@@ -31,7 +31,14 @@ Are yet to be described..
 The application is deployed here: [insert link]
 
 ## API Documentation
-API spec instructions to come
+OpenAPI specification can be found while running the server at:
+
+for raw json:
+```<server_ip>/api-doc/openapi.json```
+
+for interactive ui:
+```<server_ip>/swagger-ui```
+
 
 ## Contributing
 Feel free to fork the repository and submit pull requests. Follow coding best practices and write clean, commented code.
