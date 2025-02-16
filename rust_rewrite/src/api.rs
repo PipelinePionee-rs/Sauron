@@ -127,7 +127,7 @@ path = "/api/logout", responses(
   (status = 200, description = "Logout successful", body = String),
 ),
 )]
-pub async fn api_logout() -> impl IntoResponse {
+pub async fn api_logout(State(db): State<Arc<Connection>>) -> impl IntoResponse {
   (StatusCode::OK, Json(json!({"message": "Logout successful"})))
   // maybe remove token or smth here??
 }
