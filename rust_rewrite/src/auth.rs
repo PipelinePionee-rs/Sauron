@@ -2,8 +2,12 @@ use password_worker::*;
 use crate::{Result, Error};
 use serde::{Serialize, Deserialize};
 use utoipa::ToSchema;
-use jsonwebtoken::{encode, Header, EncodingKey};
-/// i think this works, but i'm not sure
+use jsonwebtoken::{encode, decode, DecodingKey, Validation, Header, EncodingKey};
+
+
+// ---------------------------------------------------------------------------
+// Password hashing / verification
+// ---------------------------------------------------------------------------
 
 // hash_password takes a password string and returns a hashed password string
 pub async fn hash_password(pwd: &str) -> Result<String> {
@@ -27,6 +31,13 @@ pub async fn verify_password(pwd: &str, dbpwd: &str) -> Result<bool> {
   Ok(is_valid)
 }
 
+// ---------------------------------------------------------------------------
+// Token generation / verification
+// ---------------------------------------------------------------------------
+
+// Claims struct is used to encode and decode the token
+// sub is the subject, which is the username
+// exp is expiry time, 4000 secs = 1 hour approx.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct Claims {
     pub sub: String, // subject
@@ -36,9 +47,7 @@ pub struct Claims {
 /// create_token takes a username string and returns a token string
 /// the token is generated using the username and a secret key
 pub fn create_token(username: &str) -> Result<String> {
-  // sets claims for token
-  // sub is the subject, which is the username
-  // exp is expiry time, 4000 secs = 1 hour approx.
+
   let token_claims = Claims {
     sub: username.to_owned(),
     exp: 4000,
@@ -50,4 +59,11 @@ pub fn create_token(username: &str) -> Result<String> {
   Ok(token)
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+// decode_token takes a token string and returns a Result with the Claims struct
+// we will check the sub field of the Claims struct to verify the user
+// if the sub(username) exists in the database, then the token is valid
+pub fn decode_token(token: &str) -> Result<Claims> {
+  let token = decode::<Claims>(&token, &DecodingKey::from_secret("secret".as_ref()), &Validation::default())?;
+  // returns a Result with the Claims struct
+  Ok(token.claims)
+}
