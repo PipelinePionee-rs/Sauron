@@ -48,6 +48,7 @@ pub fn routes() -> Router {
 )]
 /// Will need to expand when we have a database
 pub async fn api_search(Query(query): Query<QueryParams>) -> impl IntoResponse {
+  println!("->> Search endpoint hit with query: {:?}", query);
   // accepts 'q' and 'lang' query parameters
   let data = json!({
     "data": [],
@@ -68,6 +69,7 @@ pub async fn api_search(Query(query): Query<QueryParams>) -> impl IntoResponse {
 /// TODO: will need to hash the password and check against a database
 /// TODO: will need to generate a real token
 pub async fn api_login(cookies: Cookies, payload: Json<LoginRequest>) -> impl IntoResponse {
+  println!("->> Login endpoint hit with payload: {:?}", payload);
 
   let hashed_password = hash_password(&payload.password).await?;
   println!("hashed_password: {:?}", hashed_password);
@@ -97,6 +99,7 @@ pub async fn api_login(cookies: Cookies, payload: Json<LoginRequest>) -> impl In
  )
 ]
 pub async fn api_register(cookies: Cookies, payload: Json<RegisterRequest>) -> impl IntoResponse {
+  println!("->> Register endpoint hit with payload: {:?}", payload);
   // TODO: will need to hash the password and save to a database
   // TODO: will need to generate a real token
 
@@ -125,6 +128,7 @@ path = "/api/logout", responses(
 ),
 )]
 pub async fn api_logout() -> impl IntoResponse {
+  println!("->> Logout endpoint hit");
   (StatusCode::OK, Json(json!({"message": "Logout successful"})))
   // maybe remove token or smth here??
 }
