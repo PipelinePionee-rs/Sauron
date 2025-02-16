@@ -70,7 +70,7 @@ pub async fn api_search(State(db): State<Arc<Connection>>, Query(query): Query<Q
 /// and returns a dummy token in json format
 /// TODO: will need to hash the password and check against a database
 /// TODO: will need to generate a real token
-pub async fn api_login(cookies: Cookies, payload: Json<LoginRequest>) -> impl IntoResponse {
+pub async fn api_login(State(db): State<Arc<Connection>>, cookies: Cookies, payload: Json<LoginRequest>) -> impl IntoResponse {
 
   let hashed_password = hash_password(&payload.password).await?;
   println!("hashed_password: {:?}", hashed_password);
