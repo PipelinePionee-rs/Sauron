@@ -79,13 +79,12 @@ pub async fn api_login(cookies: Cookies, payload: Json<LoginRequest>) -> impl In
   // add cookie to response
   cookies.add(cookie);
 
-  let body = json!({
-    "result": {
-      "success": true
-    }
-  });
+  let res = LoginResponse {
+    message: "Login successful".to_string(),
+    status_code: 200,
+  }; 
   
-  Ok(Json(body))
+  Ok(Json(res))
 }
 
 
@@ -98,9 +97,6 @@ pub async fn api_login(cookies: Cookies, payload: Json<LoginRequest>) -> impl In
  )
 ]
 pub async fn api_register(cookies: Cookies, payload: Json<RegisterRequest>) -> impl IntoResponse {
-  // TODO: will need to hash the password and save to a database
-  // TODO: will need to generate a real token
-
   // dummy function to check if credentials are valid
   // will need to check against db when its working
   fn valid_credentials() -> bool {
@@ -108,9 +104,10 @@ pub async fn api_register(cookies: Cookies, payload: Json<RegisterRequest>) -> i
   }
 
   if (valid_credentials()) {
-    let response = json!({
-      "message": "User registered successfully",
-    });
+    let res = RegisterResponse {
+      message: "User registered successfully".to_string(),
+      status_code: 200,
+    };
     
     // create token, using function in auth.rs
     // it returns a Result<String>, so we unwrap it
@@ -119,10 +116,15 @@ pub async fn api_register(cookies: Cookies, payload: Json<RegisterRequest>) -> i
     let cookie = Cookie::build(token).http_only(true).secure(true).build();
     // add cookie to response
     cookies.add(cookie);
-    
-    (StatusCode::CREATED, Json(response))
+
+    (Json(res))
   } else {
-    (StatusCode::UNAUTHORIZED, Json(json!({"error": "Invalid credentials"})))
+    let res = RegisterResponse {
+      message: "Invalid credentials".to_string(),
+      status_code: 401,
+    };
+    ;
+    (Json(res))
   }
 
 }
