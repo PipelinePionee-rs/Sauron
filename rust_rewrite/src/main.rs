@@ -63,11 +63,10 @@ async fn main() {
 
   let app = Router::new()
   .route("/hello", get(hello))
-  .nest("/api/v1", api::routes()) // merge the routes from api.rs
+  .nest("/api/v1", api::routes().with_state(db.clone())) // merge the routes from api.rs
   .merge(SwaggerUi::new("/swagger-ui").url("/api-doc/openapi.json", ApiDoc::openapi())) // add swagger ui, and openapi doc
   .layer(CookieManagerLayer::new())
-  .layer(middleware::map_response(main_response_mapper))
-  .with_state(db.clone());
+  .layer(middleware::map_response(main_response_mapper));
 
   // start server 
   axum::serve(listener, app.into_make_service())
