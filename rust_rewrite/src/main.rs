@@ -6,6 +6,7 @@ mod api;
 mod auth;
 mod db;
 
+use std::sync::Arc;
 use api::{api_search, api_login, api_register, api_logout};
 use tower_cookies::{CookieManager, CookieManagerLayer};
 
@@ -18,7 +19,7 @@ use axum::{
 };
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
-
+use crate::db::create_db_connection;
 
 /// to access the interactive OpenAPI documentation, go to localhost:8080/swagger-ui
 /// to access the OpenAPI JSON, go to localhost:8080/api-doc/openapi.json
@@ -57,12 +58,16 @@ async fn main() {
     res
   }
 
+  let db = create_db_connection().await.unwrap(); // create new database connection
+  let db = Arc::new(db); // to manage shared state
+
   let app = Router::new()
   .route("/hello", get(hello))
   .nest("/api/v1", api::routes()) // merge the routes from api.rs
   .merge(SwaggerUi::new("/swagger-ui").url("/api-doc/openapi.json", ApiDoc::openapi())) // add swagger ui, and openapi doc
   .layer(CookieManagerLayer::new())
-  .layer(middleware::map_response(main_response_mapper));
+  .layer(middleware::map_response(main_response_mapper))
+  .with_state(db.clone());
 
   // start server 
   axum::serve(listener, app.into_make_service())
