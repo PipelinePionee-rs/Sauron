@@ -16,8 +16,10 @@ use axum::{
   response::IntoResponse,
   Json, Router,
 };
+use axum::extract::State;
 use hyper::StatusCode;
 use serde_json::{json, Value};
+use tokio_rusqlite::Connection;
 use tower_cookies::{Cookie, Cookies};
 use utoipa::openapi::request_body::RequestBody;
 use crate::auth::{self, hash_password};
