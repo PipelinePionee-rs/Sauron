@@ -29,7 +29,7 @@ pub const AUTH_TOKEN: &str = "auth-token";
 
 // squashes all the routes into one function
 // so we can merge them into the main router
-pub fn routes() -> Router {
+pub fn routes() -> Router<Arc<Connection>> {
   Router::new()
   .route("/login", post(api_login))
   .route("/register", post(api_register))
