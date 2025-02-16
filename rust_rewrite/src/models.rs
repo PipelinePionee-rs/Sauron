@@ -48,9 +48,3 @@ pub struct RegisterResponse {
 pub struct Data {
     pub data: Vec<Page>,
 }
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct Claims {
-    pub sub: String, // subject
-    pub exp: usize, // expiration time
-}

@@ -14,7 +14,7 @@ use hyper::StatusCode;
 use serde_json::{json, Value};
 use tower_cookies::{Cookie, Cookies};
 use utoipa::openapi::request_body::RequestBody;
-use crate::auth::{self, hash_password};
+use crate::auth::{self, hash_password, create_token};
 use jsonwebtoken::{encode, Header, EncodingKey};
 
 pub const TOKEN: &str = "token";
@@ -71,15 +71,9 @@ pub async fn api_login(cookies: Cookies, payload: Json<LoginRequest>) -> impl In
     return Err(Error::LoginFail);
   }
 
-  // set claims for token
-  // sub: subject, exp: expiration time
-  let token_claims = models::Claims {
-    sub: payload.username.to_owned(),
-    exp: 10000000000,
-  };
-
-  // generate token with claims
-  let token = encode(&Header::default(), &token_claims, &EncodingKey::from_secret("secret".as_ref()))?;
+  // create token, using function in auth.rs
+  // it returns a Result<String>, so we unwrap it
+  let token = create_token(&payload.username).unwrap();
   // build cookie with token
   let cookie = Cookie::build(token).http_only(true).secure(true).build();
   // add cookie to response
@@ -118,7 +112,14 @@ pub async fn api_register(cookies: Cookies, payload: Json<RegisterRequest>) -> i
       "message": "User registered successfully",
     });
     
-    cookies.add(Cookie::new(TOKEN, "user-1.exp.sign"));
+    // create token, using function in auth.rs
+    // it returns a Result<String>, so we unwrap it
+    let token = create_token(&payload.username).unwrap();
+    // build cookie with token
+    let cookie = Cookie::build(token).http_only(true).secure(true).build();
+    // add cookie to response
+    cookies.add(cookie);
+    
     (StatusCode::CREATED, Json(response))
   } else {
     (StatusCode::UNAUTHORIZED, Json(json!({"error": "Invalid credentials"})))
