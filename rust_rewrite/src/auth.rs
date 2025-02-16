@@ -23,3 +23,4 @@ pub async fn verify_password(pwd: &str, dbpwd: &str) -> Result<bool> {
 
   Ok(is_valid)
 }
+

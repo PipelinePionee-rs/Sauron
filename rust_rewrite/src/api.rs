@@ -1,12 +1,6 @@
 // import models from models.rs
 use crate::models::{
-  QueryParams, 
-  Page, 
-  LoginRequest, 
-  LoginResponse, 
-  RegisterRequest, 
-  RegisterResponse, 
-  Data
+  self, Data, LoginRequest, LoginResponse, Page, QueryParams, RegisterRequest, RegisterResponse
 };
 use crate::{Error, Result};
 
@@ -21,8 +15,9 @@ use serde_json::{json, Value};
 use tower_cookies::{Cookie, Cookies};
 use utoipa::openapi::request_body::RequestBody;
 use crate::auth::{self, hash_password};
+use jsonwebtoken::{encode, Header, EncodingKey};
 
-pub const AUTH_TOKEN: &str = "auth-token";
+pub const TOKEN: &str = "token";
 
 // squashes all the routes into one function
 // so we can merge them into the main router
@@ -76,7 +71,19 @@ pub async fn api_login(cookies: Cookies, payload: Json<LoginRequest>) -> impl In
     return Err(Error::LoginFail);
   }
 
-  cookies.add(Cookie::new(AUTH_TOKEN, "user-1.exp.sign"));
+  // set claims for token
+  // sub: subject, exp: expiration time
+  let token_claims = models::Claims {
+    sub: payload.username.to_owned(),
+    exp: 10000000000,
+  };
+
+  // generate token with claims
+  let token = encode(&Header::default(), &token_claims, &EncodingKey::from_secret("secret".as_ref()))?;
+  // build cookie with token
+  let cookie = Cookie::build(token).http_only(true).secure(true).build();
+  // add cookie to response
+  cookies.add(cookie);
 
   let body = json!({
     "result": {
@@ -111,7 +118,7 @@ pub async fn api_register(cookies: Cookies, payload: Json<RegisterRequest>) -> i
       "message": "User registered successfully",
     });
     
-    cookies.add(Cookie::new(AUTH_TOKEN, "user-1.exp.sign"));
+    cookies.add(Cookie::new(TOKEN, "user-1.exp.sign"));
     (StatusCode::CREATED, Json(response))
   } else {
     (StatusCode::UNAUTHORIZED, Json(json!({"error": "Invalid credentials"})))

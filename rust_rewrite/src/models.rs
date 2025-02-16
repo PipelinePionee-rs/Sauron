@@ -2,6 +2,7 @@ use axum::response::IntoResponse;
 use serde::{Serialize, Deserialize};
 use utoipa::ToSchema;
 use std::collections::HashMap;
+use jsonwebtoken::{decode, encode, Header, Validation, Algorithm, EncodingKey, DecodingKey};
 
 #[derive(Deserialize)]
 pub struct QueryParams {
@@ -46,4 +47,10 @@ pub struct RegisterResponse {
 #[derive(Serialize, ToSchema)]
 pub struct Data {
     pub data: Vec<Page>,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct Claims {
+    pub sub: String, // subject
+    pub exp: usize, // expiration time
 }
