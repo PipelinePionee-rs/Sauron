@@ -49,7 +49,7 @@ pub fn routes() -> Router {
  ),
 )]
 /// Will need to expand when we have a database
-pub async fn api_search(Query(query): Query<QueryParams>) -> impl IntoResponse {
+pub async fn api_search(State(db): Connection,Query(query): Query<QueryParams>) -> impl IntoResponse {
   // accepts 'q' and 'lang' query parameters
   let data = json!({
     "data": [],
