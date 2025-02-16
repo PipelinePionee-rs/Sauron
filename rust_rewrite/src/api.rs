@@ -99,7 +99,7 @@ pub async fn api_login(State(db): State<Arc<Connection>>, cookies: Cookies, payl
    request_body = RegisterRequest,
  )
 ]
-pub async fn api_register(cookies: Cookies, payload: Json<RegisterRequest>) -> impl IntoResponse {
+pub async fn api_register(State(db): State<Arc<Connection>>, cookies: Cookies, payload: Json<RegisterRequest>) -> impl IntoResponse {
   // TODO: will need to hash the password and save to a database
   // TODO: will need to generate a real token
 
