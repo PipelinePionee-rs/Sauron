@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use jsonwebtoken::{decode, encode, Header, Validation, Algorithm, EncodingKey, DecodingKey};
 
 #[derive(Deserialize)]
+#[derive(Debug)]
 pub struct QueryParams {
   pub q: String,
   pub lang: Option<String>,
@@ -21,6 +22,7 @@ pub struct Page {
 }
 
 #[derive(Deserialize, ToSchema)]
+#[derive(Debug)]
 pub struct LoginRequest {
     pub username: String,
     pub password: String,
@@ -33,6 +35,7 @@ pub struct LoginResponse {
 }
 
 #[derive(Deserialize, ToSchema)]
+#[derive(Debug)]
 pub struct RegisterRequest {
     pub username: String,
     pub email: String,
