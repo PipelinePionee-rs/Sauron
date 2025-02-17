@@ -2,6 +2,7 @@ use axum::response::IntoResponse;
 use serde::{Serialize, Deserialize};
 use utoipa::ToSchema;
 use std::collections::HashMap;
+use jsonwebtoken::{decode, encode, Header, Validation, Algorithm, EncodingKey, DecodingKey};
 
 #[derive(Deserialize)]
 #[derive(Debug)]
@@ -29,7 +30,8 @@ pub struct LoginRequest {
 
 #[derive(Serialize, ToSchema)]
 pub struct LoginResponse {
-    pub token: String,
+    pub status_code: i32,
+    pub message: String,
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -44,6 +46,7 @@ pub struct RegisterRequest {
 #[derive(Serialize, ToSchema)]
 pub struct RegisterResponse {
     pub message: String,
+    pub status_code: i32,
 }
 
 #[derive(Serialize, ToSchema)]
