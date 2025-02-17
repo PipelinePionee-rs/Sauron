@@ -1,3 +1,4 @@
+use std::sync::Arc;
 // import models from models.rs
 use crate::models::{
   self, Data, LoginRequest, LoginResponse, Page, QueryParams, RegisterRequest, RegisterResponse
