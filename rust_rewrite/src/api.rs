@@ -1,13 +1,6 @@
-use std::sync::Arc;
 // import models from models.rs
 use crate::models::{
-  QueryParams, 
-  Page, 
-  LoginRequest, 
-  LoginResponse, 
-  RegisterRequest, 
-  RegisterResponse, 
-  Data
+  self, Data, LoginRequest, LoginResponse, Page, QueryParams, RegisterRequest, RegisterResponse
 };
 use crate::{Error, Result};
 
@@ -23,9 +16,10 @@ use serde_json::{json, Value};
 use tokio_rusqlite::Connection;
 use tower_cookies::{Cookie, Cookies};
 use utoipa::openapi::request_body::RequestBody;
-use crate::auth::{self, hash_password};
+use crate::auth::{self, hash_password, create_token};
+use jsonwebtoken::{encode, Header, EncodingKey};
 
-pub const AUTH_TOKEN: &str = "auth-token";
+pub const TOKEN: &str = "token";
 
 // squashes all the routes into one function
 // so we can merge them into the main router
@@ -51,6 +45,7 @@ pub fn routes() -> Router<Arc<Connection>> {
 )]
 /// Will need to expand when we have a database
 pub async fn api_search(State(db): State<Arc<Connection>>, Query(query): Query<QueryParams>) -> impl IntoResponse {
+  println!("->> Search endpoint hit with query: {:?}", query);
   // accepts 'q' and 'lang' query parameters
   let data = json!({
     "data": [],
@@ -71,6 +66,7 @@ pub async fn api_search(State(db): State<Arc<Connection>>, Query(query): Query<Q
 /// TODO: will need to hash the password and check against a database
 /// TODO: will need to generate a real token
 pub async fn api_login(State(db): State<Arc<Connection>>, cookies: Cookies, payload: Json<LoginRequest>) -> impl IntoResponse {
+  println!("->> Login endpoint hit with payload: {:?}", payload);
 
   let hashed_password = hash_password(&payload.password).await?;
   println!("hashed_password: {:?}", hashed_password);
@@ -79,15 +75,20 @@ pub async fn api_login(State(db): State<Arc<Connection>>, cookies: Cookies, payl
     return Err(Error::LoginFail);
   }
 
-  cookies.add(Cookie::new(AUTH_TOKEN, "user-1.exp.sign"));
+  // create token, using function in auth.rs
+  // it returns a Result<String>, so we unwrap it
+  let token = create_token(&payload.username).unwrap();
+  // build cookie with token
+  let cookie = Cookie::build(token).http_only(true).secure(true).build();
+  // add cookie to response
+  cookies.add(cookie);
 
-  let body = json!({
-    "result": {
-      "success": true
-    }
-  });
+  let res = LoginResponse {
+    message: "Login successful".to_string(),
+    status_code: 200,
+  };
   
-  Ok(Json(body))
+  Ok(Json(res))
 }
 
 
@@ -99,9 +100,9 @@ pub async fn api_login(State(db): State<Arc<Connection>>, cookies: Cookies, payl
    request_body = RegisterRequest,
  )
 ]
-pub async fn api_register(State(db): State<Arc<Connection>>, cookies: Cookies, payload: Json<RegisterRequest>) -> impl IntoResponse {
+pub async fn api_register(cookies: Cookies, payload: Json<RegisterRequest>) -> impl IntoResponse {
+  println!("->> Register endpoint hit with payload: {:?}", payload);
   // TODO: will need to hash the password and save to a database
-  // TODO: will need to generate a real token
 
   // dummy function to check if credentials are valid
   // will need to check against db when its working
@@ -110,14 +111,27 @@ pub async fn api_register(State(db): State<Arc<Connection>>, cookies: Cookies, p
   }
 
   if (valid_credentials()) {
-    let response = json!({
-      "message": "User registered successfully",
-    });
+    let res = RegisterResponse {
+      message: "User registered successfully".to_string(),
+      status_code: 200,
+    };
     
-    cookies.add(Cookie::new(AUTH_TOKEN, "user-1.exp.sign"));
-    (StatusCode::CREATED, Json(response))
+    // create token, using function in auth.rs
+    // it returns a Result<String>, so we unwrap it
+    let token = create_token(&payload.username).unwrap();
+    // build cookie with token
+    let cookie = Cookie::build(token).http_only(true).secure(true).build();
+    // add cookie to response
+    cookies.add(cookie);
+
+    (Json(res))
   } else {
-    (StatusCode::UNAUTHORIZED, Json(json!({"error": "Invalid credentials"})))
+    let res = RegisterResponse {
+      message: "Invalid credentials".to_string(),
+      status_code: 401,
+    };
+    ;
+    (Json(res))
   }
 
 }
@@ -128,6 +142,7 @@ path = "/api/logout", responses(
 ),
 )]
 pub async fn api_logout(State(db): State<Arc<Connection>>) -> impl IntoResponse {
+  println!("->> Logout endpoint hit");
   (StatusCode::OK, Json(json!({"message": "Logout successful"})))
   // maybe remove token or smth here??
 }
