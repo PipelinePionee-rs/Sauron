@@ -13,7 +13,7 @@ use serde_json::json;
 /// 
 /// and run the test with a separate terminal:
 /// 
-/// cargo watch -q -c -w src/ -x "test -q quick_dev -- --nocapture"
+/// cargo watch -q -c -w src/ -x "test -q quick_dev -- --ignored --nocapture"
 /// 
 /// this will run the test and print the output to the console
 /// every time you change/save the quick_dev file 
@@ -23,7 +23,8 @@ const GET_PATH: &str = "/api/v1/logout";
 const POST_PATH: &str = "/api/v1/login";
 
 #[tokio::test]
-async fn quick_get() -> Result<()> {
+#[ignore] // ignore this test by default, only run when manually flagged with '--ignored'
+async fn quick_dev() -> Result<()> {
   let hc = httpc_test::new_client(ADDRESS)?;
 
   hc.do_get(GET_PATH).await?.print().await?;
@@ -35,4 +36,3 @@ async fn quick_get() -> Result<()> {
 
   Ok(())
 }
-
