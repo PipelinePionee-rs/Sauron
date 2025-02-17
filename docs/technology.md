@@ -18,6 +18,7 @@ Rust is used for the backend, It offers memory safety, high performance, and a s
 ## Axum
 Axum is our web framework of choice, built specifically for Rust. It is designed for asynchronous, high-performance HTTP applications and integrates seamlessly with the Tokio runtime.
 There were other great options like Actix, but the choice eventually fell on Axum due to benchmarks from [TechEmpower](https://www.techempower.com/benchmarks/#hw=ph&test=fortune&section=data-r22)
+![Image showing axum rank 6 on a web framework benchmark](./images/Axum%20Benchmark.png)
 
 
 
