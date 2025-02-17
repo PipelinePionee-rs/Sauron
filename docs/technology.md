@@ -23,7 +23,9 @@ There were other great options like Actix, but the choice eventually fell on Axu
 
 
 ## Nginx
-Nginx is used as a reverse proxy for our application. It helps handle incoming requests efficiently and improves the overall performance and security of our services.
+Nginx is used as a reverse proxy for our backend API, and to serve our static html and javascript files. 
+Since stability and performance is our goal, Nginx is the obvious choice.
+
 
 
 
