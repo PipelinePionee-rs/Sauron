@@ -53,3 +53,9 @@ pub struct RegisterResponse {
 pub struct Data {
     pub data: Vec<Page>,
 }
+
+#[derive(Serialize, ToSchema)]
+pub struct ErrorResponse {
+    pub status_code: i32,
+    pub message: String,
+}
