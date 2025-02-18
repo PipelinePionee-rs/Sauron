@@ -1,22 +1,25 @@
 use std::sync::Arc;
 // import models from models.rs
-use crate::models::{self, Data, LoginRequest, LoginResponse, LogoutResponse, Page, QueryParams, RegisterRequest, RegisterResponse, ApiErrorResponse};
+use crate::models::{
+    self, ApiErrorResponse, Data, LoginRequest, LoginResponse, LogoutResponse, Page, QueryParams,
+    RegisterRequest, RegisterResponse,
+};
 use crate::{Error, Result};
 
+use crate::auth::{self, create_token, hash_password};
+use axum::extract::State;
 use axum::{
-    routing::{get, post},
     extract::Query,
     response::IntoResponse,
+    routing::{get, post},
     Json, Router,
 };
-use axum::extract::State;
 use hyper::StatusCode;
+use jsonwebtoken::{encode, EncodingKey, Header};
 use serde_json::{json, Value};
 use tokio_rusqlite::{params, Connection, Result as SQLiteResult};
 use tower_cookies::{Cookie, Cookies};
 use utoipa::openapi::request_body::RequestBody;
-use crate::auth::{self, hash_password, create_token};
-use jsonwebtoken::{encode, Header, EncodingKey};
 
 pub const TOKEN: &str = "token";
 
@@ -30,7 +33,6 @@ pub fn routes() -> Router<Arc<Connection>> {
         .route("/search", get(api_search))
 }
 
-
 #[utoipa::path(get,
     path = "/api/search",
     params(
@@ -42,20 +44,20 @@ pub fn routes() -> Router<Arc<Connection>> {
    (status = 422, description = "Invalid search query", body = ApiErrorResponse),
     ),
 )]
-pub async fn api_search(State(db): State<Arc<Connection>>, Query(query): Query<QueryParams>) -> impl IntoResponse {
-    println!("->> Search endpoint hit with query: {:?} and lang: {:?}", query.q, query.lang);
+pub async fn api_search(
+    State(db): State<Arc<Connection>>,
+    Query(query): Query<QueryParams>,
+) -> impl IntoResponse {
+    println!(
+        "->> Search endpoint hit with query: {:?} and lang: {:?}",
+        query.q, query.lang
+    );
     // accepts 'q' and 'lang' query parameters
     let q = query.q.clone().unwrap_or_default();
 
     if q.trim().is_empty() {
-      return Error::UnprocessableEntity.into_response(); // easier/better errorhandling
-      //   let error_response = ErrorResponse {
-      //       status_code: 422,
-      //       message: "Query parameter 'q' cannot be empty or absent.".to_string(),
-      //   };
-      //   return (StatusCode::UNPROCESSABLE_ENTITY, Json(error_response)).into_response();
+        return Error::UnprocessableEntity.into_response();
     }
-
 
     let lang = query.lang.clone().unwrap_or("en".to_string());
 
@@ -83,12 +85,10 @@ pub async fn api_search(State(db): State<Arc<Connection>>, Query(query): Query<Q
     match result {
         Ok(data) => Json(json!({ "data": data })).into_response(),
         Err(err) => {
-            return Error::GenericError.into_response(); // easier/better errorhandling
-            //Json(json!({ "error": "Internal server error" })).into_response()
+            return Error::GenericError.into_response();
         }
     }
 }
-
 
 #[utoipa::path(post,
   path = "/api/login", responses( 
@@ -97,10 +97,11 @@ pub async fn api_search(State(db): State<Arc<Connection>>, Query(query): Query<Q
  ),
  request_body = LoginRequest,
 )]
-/// for now, this just accepts a hardcoded username and password
-/// and returns a dummy token in json format
-/// TODO: will need to hash the password and check against a database
-pub async fn api_login(State(db): State<Arc<Connection>>, cookies: Cookies, payload: Json<LoginRequest>) -> impl IntoResponse {
+pub async fn api_login(
+    State(db): State<Arc<Connection>>,
+    cookies: Cookies,
+    payload: Json<LoginRequest>,
+) -> impl IntoResponse {
     println!("->> Login endpoint hit with payload: {:?}", payload);
 
     // get username from payload
@@ -109,14 +110,11 @@ pub async fn api_login(State(db): State<Arc<Connection>>, cookies: Cookies, payl
     let password = payload.password.clone();
 
     let username_result = db
-        .call(move |conn| { 
-            let mut stmt = conn.prepare(
-                "SELECT username, password FROM users WHERE username = ?1"
-            )?;
+        .call(move |conn| {
+            let mut stmt =
+                conn.prepare("SELECT username, password FROM users WHERE username = ?1")?;
 
-            let rows = stmt.query_map(params![&username], |row| {
-                Ok((row.get(0)?, row.get(1)?))
-            })?;
+            let rows = stmt.query_map(params![&username], |row| Ok((row.get(0)?, row.get(1)?)))?;
 
             let results: Vec<(String, String)> = rows.filter_map(|res| res.ok()).collect();
             Ok(results)
@@ -125,11 +123,11 @@ pub async fn api_login(State(db): State<Arc<Connection>>, cookies: Cookies, payl
 
     let db_password = username_result.unwrap()[0].1.clone();
 
-    println!("->> payload_password: {:?}", password);
-    println!("->> db_password: {:?}", db_password);
-
     // verify password
     let is_correct = auth::verify_password(&payload.password, &db_password).await?;
+
+    println!("->> password match: {:?}", is_correct);
+
     if is_correct == false {
         return Err(Error::InvalidCredentials);
     }
@@ -150,7 +148,6 @@ pub async fn api_login(State(db): State<Arc<Connection>>, cookies: Cookies, payl
     Ok(Json(res))
 }
 
-
 #[utoipa::path(post,
   path = "/api/register", responses(
    (status = 200, description = "User registered successfully", body = RegisterResponse),
@@ -159,17 +156,19 @@ pub async fn api_login(State(db): State<Arc<Connection>>, cookies: Cookies, payl
    request_body = RegisterRequest,
 )
 ]
-pub async fn api_register(db: State<Arc<Connection>>, cookies: Cookies, payload: Json<RegisterRequest>) -> impl IntoResponse {
+pub async fn api_register(
+    db: State<Arc<Connection>>,
+    cookies: Cookies,
+    payload: Json<RegisterRequest>,
+) -> impl IntoResponse {
     println!("->> Register endpoint hit with payload: {:?}", payload);
     // TODO: will need to hash the password and save to a database
 
     // since the username is being "used" twice, we have to clone it,
     // else the first usage in the db function will consume it.
-    // username_db is used for the db function, username_token is used for the token function
+    // the original payload.username is used for the db function, username_token is used for the token function
 
-    // get username for db
-    let username_db = payload.username.clone();
-    // get username for token
+    // clone username for token generation
     let username_token = payload.username.clone();
 
     // hash password
@@ -180,12 +179,13 @@ pub async fn api_register(db: State<Arc<Connection>>, cookies: Cookies, payload:
         .call(move |conn| {
             conn.execute(
                 "INSERT INTO users (username, email, password) VALUES (?1, ?2, ?3)",
-                params![&payload.username, &payload.email, &hashed_password],
+                params![&payload.username, &payload.email, &hashed_password], // note we insert hashed password
             )
-            .map_err(tokio_rusqlite::Error::from)
+            .map_err(tokio_rusqlite::Error::from) // we have to convert the error type, else rust will complain
         })
         .await?;
 
+    // sql returns 1 if successful, 0 if not
     if (res == 1) {
         let res = RegisterResponse {
             message: "User registered successfully".to_string(),
