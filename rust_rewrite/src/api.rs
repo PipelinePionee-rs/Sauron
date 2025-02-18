@@ -1,6 +1,6 @@
 use std::sync::Arc;
 // import models from models.rs
-use crate::models::{self, Data, ErrorResponse, LoginRequest, LoginResponse, Page, QueryParams, RegisterRequest, RegisterResponse};
+use crate::models::{self, Data, ErrorResponse, LoginRequest, LoginResponse, LogoutResponse, Page, QueryParams, RegisterRequest, RegisterResponse};
 use crate::{Error, Result};
 
 use axum::{
@@ -87,11 +87,6 @@ pub async fn api_search(State(db): State<Arc<Connection>>, Query(query): Query<Q
             Json(json!({ "error": "Internal server error" })).into_response()
         }
     }
-
-    //  let data = json!({
-    //    "data": [],
-    //  });
-    // Json(data)
 }
 
 
@@ -105,7 +100,6 @@ pub async fn api_search(State(db): State<Arc<Connection>>, Query(query): Query<Q
 /// for now, this just accepts a hardcoded username and password
 /// and returns a dummy token in json format
 /// TODO: will need to hash the password and check against a database
-/// TODO: will need to generate a real token
 pub async fn api_login(State(db): State<Arc<Connection>>, cookies: Cookies, payload: Json<LoginRequest>) -> impl IntoResponse {
     println!("->> Login endpoint hit with payload: {:?}", payload);
 
@@ -113,7 +107,7 @@ pub async fn api_login(State(db): State<Arc<Connection>>, cookies: Cookies, payl
     println!("hashed_password: {:?}", hashed_password);
     let is_correct = auth::verify_password(&payload.password, &hashed_password).await?;
     if payload.username != "admin" || payload.password != "password" {
-        return Err(Error::LoginFail);
+        return Err(Error::InvalidCredentials);
     }
 
     // create token, using function in auth.rs
@@ -136,7 +130,7 @@ pub async fn api_login(State(db): State<Arc<Connection>>, cookies: Cookies, payl
 #[utoipa::path(post,
   path = "/api/register", responses(
    (status = 200, description = "User registered successfully", body = RegisterResponse),
-   (status = 401, description = "Invalid credentials", body = String),
+   (status = 401, description = "Invalid credentials", body = RegisterResponse),
   ),
    request_body = RegisterRequest,
 )
@@ -165,24 +159,24 @@ pub async fn api_register(cookies: Cookies, payload: Json<RegisterRequest>) -> i
         // add cookie to response
         cookies.add(cookie);
 
-        (Json(res))
+        Ok(Json(res))
     } else {
-        let res = RegisterResponse {
-            message: "Invalid credentials".to_string(),
-            status_code: 401,
-        };
-        ;
-        (Json(res))
+        return Err(Error::InvalidCredentials);
     }
 }
 
 #[utoipa::path(get,
     path = "/api/logout", responses(
-  (status = 200, description = "Logout successful", body = String),
+  (status = 200, description = "Logout successful", body = LogoutResponse),
     ),
 )]
 pub async fn api_logout(State(db): State<Arc<Connection>>) -> impl IntoResponse {
     println!("->> Logout endpoint hit");
-    (StatusCode::OK, Json(json!({"message": "Logout successful"})))
+
+    let res = LogoutResponse {
+        message: "Logout successful".to_string(),
+        status_code: 200,
+    };
+    Json(res)
     // maybe remove token or smth here??
 }
