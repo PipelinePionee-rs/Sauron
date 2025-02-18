@@ -185,3 +185,4 @@ cython_debug/
 #.idea/
 
 sauron.db
+quick_dev.rs
