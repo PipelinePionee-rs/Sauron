@@ -103,10 +103,34 @@ pub async fn api_search(State(db): State<Arc<Connection>>, Query(query): Query<Q
 pub async fn api_login(State(db): State<Arc<Connection>>, cookies: Cookies, payload: Json<LoginRequest>) -> impl IntoResponse {
     println!("->> Login endpoint hit with payload: {:?}", payload);
 
-    let hashed_password = hash_password(&payload.password).await?;
-    println!("hashed_password: {:?}", hashed_password);
-    let is_correct = auth::verify_password(&payload.password, &hashed_password).await?;
-    if payload.username != "admin" || payload.password != "password" {
+    // get username from payload
+    let username = payload.username.clone();
+    // get password from payload
+    let password = payload.password.clone();
+
+    let username_result = db
+        .call(move |conn| { 
+            let mut stmt = conn.prepare(
+                "SELECT username, password FROM users WHERE username = ?1"
+            )?;
+
+            let rows = stmt.query_map(params![&username], |row| {
+                Ok((row.get(0)?, row.get(1)?))
+            })?;
+
+            let results: Vec<(String, String)> = rows.filter_map(|res| res.ok()).collect();
+            Ok(results)
+        })
+        .await;
+
+    let db_password = username_result.unwrap()[0].1.clone();
+
+    println!("->> payload_password: {:?}", password);
+    println!("->> db_password: {:?}", db_password);
+
+    // verify password
+    let is_correct = auth::verify_password(&payload.password, &db_password).await?;
+    if is_correct == false {
         return Err(Error::InvalidCredentials);
     }
 
@@ -135,17 +159,34 @@ pub async fn api_login(State(db): State<Arc<Connection>>, cookies: Cookies, payl
    request_body = RegisterRequest,
 )
 ]
-pub async fn api_register(cookies: Cookies, payload: Json<RegisterRequest>) -> impl IntoResponse {
+pub async fn api_register(db: State<Arc<Connection>>, cookies: Cookies, payload: Json<RegisterRequest>) -> impl IntoResponse {
     println!("->> Register endpoint hit with payload: {:?}", payload);
     // TODO: will need to hash the password and save to a database
 
-    // dummy function to check if credentials are valid
-    // will need to check against db when its working
-    fn valid_credentials() -> bool {
-        true
-    }
+    // since the username is being "used" twice, we have to clone it,
+    // else the first usage in the db function will consume it.
+    // username_db is used for the db function, username_token is used for the token function
 
-    if (valid_credentials()) {
+    // get username for db
+    let username_db = payload.username.clone();
+    // get username for token
+    let username_token = payload.username.clone();
+
+    // hash password
+    let hashed_password = hash_password(&payload.password).await?;
+
+    // insert payload into db
+    let res = db
+        .call(move |conn| {
+            conn.execute(
+                "INSERT INTO users (username, email, password) VALUES (?1, ?2, ?3)",
+                params![&payload.username, &payload.email, &hashed_password],
+            )
+            .map_err(tokio_rusqlite::Error::from)
+        })
+        .await?;
+
+    if (res == 1) {
         let res = RegisterResponse {
             message: "User registered successfully".to_string(),
             status_code: 200,
@@ -153,7 +194,7 @@ pub async fn api_register(cookies: Cookies, payload: Json<RegisterRequest>) -> i
 
         // create token, using function in auth.rs
         // it returns a Result<String>, so we unwrap it
-        let token = create_token(&payload.username).unwrap();
+        let token = create_token(&username_token).unwrap();
         // build cookie with token
         let cookie = Cookie::build(token).http_only(true).secure(true).build();
         // add cookie to response
