@@ -7,7 +7,7 @@ use jsonwebtoken::{decode, encode, Header, Validation, Algorithm, EncodingKey, D
 #[derive(Deserialize)]
 #[derive(Debug)]
 pub struct QueryParams {
-  pub q: String,
+  pub q: Option<String>,
   pub lang: Option<String>,
 }
 
