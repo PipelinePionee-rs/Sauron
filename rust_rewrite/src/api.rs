@@ -51,7 +51,7 @@ pub async fn api_search(State(db): State<Arc<Connection>>, Query(query): Query<Q
     if q.trim().is_empty() {
         let error_response = ErrorResponse {
             status_code: 422,
-            message: "Query parameter 'q' cannot be empty.".to_string(),
+            message: "Query parameter 'q' cannot be empty or absent.".to_string(),
         };
         return (StatusCode::UNPROCESSABLE_ENTITY, Json(error_response)).into_response();
     }
