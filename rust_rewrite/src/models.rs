@@ -7,7 +7,7 @@ use jsonwebtoken::{decode, encode, Header, Validation, Algorithm, EncodingKey, D
 #[derive(Deserialize)]
 #[derive(Debug)]
 pub struct QueryParams {
-  pub q: String,
+  pub q: Option<String>,
   pub lang: Option<String>,
 }
 
@@ -52,4 +52,10 @@ pub struct RegisterResponse {
 #[derive(Serialize, ToSchema)]
 pub struct Data {
     pub data: Vec<Page>,
+}
+
+#[derive(Serialize, ToSchema)]
+pub struct ErrorResponse {
+    pub status_code: i32,
+    pub message: String,
 }
