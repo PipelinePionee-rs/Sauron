@@ -114,6 +114,7 @@ pub async fn api_login(
             let mut stmt =
                 conn.prepare("SELECT username, password FROM users WHERE username = ?1")?;
 
+            
             let rows = stmt.query_map(params![&username], |row| Ok((row.get(0)?, row.get(1)?)))?;
 
             let results: Vec<(String, String)> = rows.filter_map(|res| res.ok()).collect();
@@ -121,7 +122,7 @@ pub async fn api_login(
         })
         .await;
 
-    // extract password from db result
+    // extract password from first row, second column of db_result
     let db_password = &db_result.unwrap()[0].1;
 
     // verify password
