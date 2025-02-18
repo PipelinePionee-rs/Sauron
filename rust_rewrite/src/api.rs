@@ -46,7 +46,17 @@ pub fn routes() -> Router<Arc<Connection>> {
 pub async fn api_search(State(db): State<Arc<Connection>>, Query(query): Query<QueryParams>) -> impl IntoResponse {
     println!("->> Search endpoint hit with query: {:?}", query);
     // accepts 'q' and 'lang' query parameters
-    let q = query.q.clone();
+    let q = query.q.clone().unwrap_or_default();
+
+    if q.trim().is_empty() {
+        let error_response = ErrorResponse {
+            status_code: 422,
+            message: "Query parameter 'q' cannot be empty.".to_string(),
+        };
+        return (StatusCode::UNPROCESSABLE_ENTITY, Json(error_response)).into_response();
+    }
+
+
     let lang = query.lang.clone().unwrap_or("en".to_string());
 
     let result = db
