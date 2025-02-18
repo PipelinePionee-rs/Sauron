@@ -59,3 +59,9 @@ pub struct ErrorResponse {
     pub status_code: i32,
     pub message: String,
 }
+
+#[derive(Serialize, ToSchema)]
+pub struct LogoutResponse {
+    pub status_code: i32,
+    pub message: String,
+}
