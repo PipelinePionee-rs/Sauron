@@ -81,10 +81,10 @@ pub async fn api_search(State(db): State<Arc<Connection>>, Query(query): Query<Q
         .await;
 
     match result {
-        Ok(data) => Json(json!({ "data": data })),
+        Ok(data) => Json(json!({ "data": data })).into_response(),
         Err(err) => {
             eprintln!("Database error: {:?}", err);
-            Json(json!({ "error": "Internal server error" }))
+            Json(json!({ "error": "Internal server error" })).into_response()
         }
     }
 
