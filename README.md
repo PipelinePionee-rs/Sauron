@@ -34,10 +34,10 @@ The application is deployed here: [insert link]
 OpenAPI specification can be found while running the server at:
 
 for raw json:
-```<server_ip>/api-doc/openapi.json```
+```<server_ip>/doc/api-doc/openapi.json```
 
 for interactive ui:
-```<server_ip>/swagger-ui```
+```<server_ip>/doc/swagger-ui```
 
 
 ## Contributing
