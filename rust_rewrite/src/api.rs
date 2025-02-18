@@ -39,7 +39,7 @@ pub fn routes() -> Router<Arc<Connection>> {
     ),
     responses(
    (status = 200, description = "Search successful", body = Data),
-   (status = 422, description = "Invalid search query", body = String),
+   (status = 422, description = "Invalid search query", body = ErrorResponse),
     ),
 )]
 /// Will need to expand when we have a database
