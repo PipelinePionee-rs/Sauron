@@ -54,7 +54,7 @@ pub async fn api_search(State(db): State<Arc<Connection>>, Query(query): Query<Q
     let result = db
         .call(move |conn| { /// .call is async way to execute database operations it takes conn which is self-supplied (it's part of db)  move makes sure q and lang variables stay in scope.
             let mut stmt = conn.prepare(
-                "SELECT title, url, language, last_updated, content FROM pages WHERE language = ?1 AND title LIKE ?2"
+                "SELECT title, url, language, last_updated, content FROM pages WHERE language = ?1 AND content LIKE ?2"
             )?;
 
             let rows = stmt.query_map(params![&lang, format!("%{}%", q)], |row| {
