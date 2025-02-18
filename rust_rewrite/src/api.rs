@@ -48,6 +48,9 @@ pub fn routes() -> Router<Arc<Connection>> {
 pub async fn api_search(State(db): State<Arc<Connection>>, Query(query): Query<QueryParams>) -> impl IntoResponse {
   println!("->> Search endpoint hit with query: {:?}", query);
   // accepts 'q' and 'lang' query parameters
+  let q = query.q.clone();
+  let lang = query.lang.clone();
+
   let data = json!({
     "data": [],
   });
