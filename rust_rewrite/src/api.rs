@@ -49,7 +49,8 @@ pub async fn api_search(State(db): State<Arc<Connection>>, Query(query): Query<Q
   println!("->> Search endpoint hit with query: {:?}", query);
   // accepts 'q' and 'lang' query parameters
   let q = query.q.clone();
-  let lang = query.lang.clone();
+  let lang = query.lang.clone().unwrap_or("en".to_string());
+
 
   let data = json!({
     "data": [],
