@@ -63,7 +63,7 @@ async fn main() {
   let app = Router::new()
   .route("/hello", get(hello))
   .nest("/api/v1", api::routes().with_state(db.clone())) // merge the routes from api.rs
-  .merge(SwaggerUi::new("/swagger-ui").url("/api-doc/openapi.json", ApiDoc::openapi())) // add swagger ui, and openapi doc
+  .merge(SwaggerUi::new("/doc/swagger-ui").url("/doc/api-doc/openapi.json", ApiDoc::openapi())) // add swagger ui, and openapi doc
   .layer(CookieManagerLayer::new())
   .layer(middleware::map_response(main_response_mapper));
 
