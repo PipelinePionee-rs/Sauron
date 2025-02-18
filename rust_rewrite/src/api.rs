@@ -1,6 +1,6 @@
 use std::sync::Arc;
 // import models from models.rs
-use crate::models::{self, Data, ErrorResponse, LoginRequest, LoginResponse, LogoutResponse, Page, QueryParams, RegisterRequest, RegisterResponse};
+use crate::models::{self, Data, LoginRequest, LoginResponse, LogoutResponse, Page, QueryParams, RegisterRequest, RegisterResponse, ApiErrorResponse};
 use crate::{Error, Result};
 
 use axum::{
@@ -39,21 +39,21 @@ pub fn routes() -> Router<Arc<Connection>> {
     ),
     responses(
    (status = 200, description = "Search successful", body = Data),
-   (status = 422, description = "Invalid search query", body = ErrorResponse),
+   (status = 422, description = "Invalid search query", body = ApiErrorResponse),
     ),
 )]
-/// Will need to expand when we have a database
 pub async fn api_search(State(db): State<Arc<Connection>>, Query(query): Query<QueryParams>) -> impl IntoResponse {
-    println!("->> Search endpoint hit with query: {:?}", query);
+    println!("->> Search endpoint hit with query: {:?} and lang: {:?}", query.q, query.lang);
     // accepts 'q' and 'lang' query parameters
     let q = query.q.clone().unwrap_or_default();
 
     if q.trim().is_empty() {
-        let error_response = ErrorResponse {
-            status_code: 422,
-            message: "Query parameter 'q' cannot be empty or absent.".to_string(),
-        };
-        return (StatusCode::UNPROCESSABLE_ENTITY, Json(error_response)).into_response();
+      return Error::UnprocessableEntity.into_response(); // easier/better errorhandling
+      //   let error_response = ErrorResponse {
+      //       status_code: 422,
+      //       message: "Query parameter 'q' cannot be empty or absent.".to_string(),
+      //   };
+      //   return (StatusCode::UNPROCESSABLE_ENTITY, Json(error_response)).into_response();
     }
 
 
@@ -83,8 +83,8 @@ pub async fn api_search(State(db): State<Arc<Connection>>, Query(query): Query<Q
     match result {
         Ok(data) => Json(json!({ "data": data })).into_response(),
         Err(err) => {
-            eprintln!("Database error: {:?}", err);
-            Json(json!({ "error": "Internal server error" })).into_response()
+            return Error::GenericError.into_response(); // easier/better errorhandling
+            //Json(json!({ "error": "Internal server error" })).into_response()
         }
     }
 }
@@ -93,7 +93,7 @@ pub async fn api_search(State(db): State<Arc<Connection>>, Query(query): Query<Q
 #[utoipa::path(post,
   path = "/api/login", responses( 
    (status = 200, description = "Login successful", body = LoginResponse),
-   (status = 401, description = "Invalid credentials", body = String),
+   (status = 401, description = "Invalid credentials", body = ApiErrorResponse),
  ),
  request_body = LoginRequest,
 )]
@@ -130,7 +130,7 @@ pub async fn api_login(State(db): State<Arc<Connection>>, cookies: Cookies, payl
 #[utoipa::path(post,
   path = "/api/register", responses(
    (status = 200, description = "User registered successfully", body = RegisterResponse),
-   (status = 401, description = "Invalid credentials", body = RegisterResponse),
+   (status = 401, description = "Invalid credentials", body = ApiErrorResponse),
   ),
    request_body = RegisterRequest,
 )
