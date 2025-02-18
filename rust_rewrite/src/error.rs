@@ -7,14 +7,28 @@ pub type Result<T> = core::result::Result<T, Error>;
 #[derive(Debug)]
 pub enum Error {
   LoginFail,
+  InvalidCredentials,
   HashError(Box<dyn StdError + Send + Sync + 'static>),
+  GenericError
 }
 
 impl IntoResponse for Error {
   fn into_response(self) -> Response {
     println!("->> {:<12} - {self:?}", "INTO_RES");
-
-    (StatusCode::INTERNAL_SERVER_ERROR, "UNHANDLED CLIENT_ERROR").into_response()
+    match self {
+      Error::LoginFail => {
+        (StatusCode::UNAUTHORIZED, "Login failed").into_response()
+      }
+      Error::InvalidCredentials => {
+        (StatusCode::UNAUTHORIZED, "Invalid credentials").into_response()
+      }
+      Error::HashError(_) => {
+        (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error").into_response()
+      }
+      Error::GenericError => {
+        (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error").into_response()
+      }
+    }
   }
 }
 
