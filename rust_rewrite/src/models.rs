@@ -4,8 +4,14 @@ use utoipa::ToSchema;
 use std::collections::HashMap;
 use jsonwebtoken::{decode, encode, Header, Validation, Algorithm, EncodingKey, DecodingKey};
 
-#[derive(Deserialize)]
-#[derive(Debug)]
+#[derive(Serialize, ToSchema, Debug)]
+pub struct ApiErrorResponse {
+    pub status_code: i32,
+    pub error: String,
+    pub message: String,
+}
+
+#[derive(Deserialize, Debug)]
 pub struct QueryParams {
   pub q: Option<String>,
   pub lang: Option<String>,
@@ -21,8 +27,7 @@ pub struct Page {
   pub content: String,
 }
 
-#[derive(Deserialize, ToSchema)]
-#[derive(Debug)]
+#[derive(Deserialize, ToSchema, Debug)]
 pub struct LoginRequest {
     pub username: String,
     pub password: String,
@@ -34,8 +39,7 @@ pub struct LoginResponse {
     pub message: String,
 }
 
-#[derive(Deserialize, ToSchema)]
-#[derive(Debug)]
+#[derive(Deserialize, ToSchema, Debug)]
 pub struct RegisterRequest {
     pub username: String,
     pub email: String,
@@ -54,8 +58,14 @@ pub struct Data {
     pub data: Vec<Page>,
 }
 
+// #[derive(Serialize, ToSchema)]
+// pub struct ErrorResponse {
+//     pub status_code: i32,
+//     pub message: String,
+// }
+
 #[derive(Serialize, ToSchema)]
-pub struct ErrorResponse {
+pub struct LogoutResponse {
     pub status_code: i32,
     pub message: String,
 }
