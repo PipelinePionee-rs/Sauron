@@ -21,7 +21,7 @@ use tokio_rusqlite::{params, Connection, Result as SQLiteResult};
 use tower_cookies::{Cookie, Cookies};
 use utoipa::openapi::request_body::RequestBody;
 
-pub const TOKEN: &str = "token";
+pub const TOKEN: &str = "auth_token";
 
 // squashes all the routes into one function
 // so we can merge them into the main router
@@ -109,7 +109,7 @@ pub async fn api_login(
     // get password from payload
     let password = payload.password.clone();
 
-    let username_result = db
+    let db_result = db
         .call(move |conn| {
             let mut stmt =
                 conn.prepare("SELECT username, password FROM users WHERE username = ?1")?;
@@ -121,7 +121,8 @@ pub async fn api_login(
         })
         .await;
 
-    let db_password = username_result.unwrap()[0].1.clone();
+    // extract password from db result
+    let db_password = &db_result.unwrap()[0].1;
 
     // verify password
     let is_correct = auth::verify_password(&payload.password, &db_password).await?;
@@ -136,7 +137,7 @@ pub async fn api_login(
     // it returns a Result<String>, so we unwrap it
     let token = create_token(&payload.username).unwrap();
     // build cookie with token
-    let cookie = Cookie::build(token).http_only(true).secure(true).build();
+    let cookie = Cookie::build((TOKEN, token)).http_only(true).secure(true).build();
     // add cookie to response
     cookies.add(cookie);
 
@@ -162,7 +163,7 @@ pub async fn api_register(
     payload: Json<RegisterRequest>,
 ) -> impl IntoResponse {
     println!("->> Register endpoint hit with payload: {:?}", payload);
-    // TODO: will need to hash the password and save to a database
+    // TODO: check if username already exists
 
     // since the username is being "used" twice, we have to clone it,
     // else the first usage in the db function will consume it.
@@ -196,7 +197,7 @@ pub async fn api_register(
         // it returns a Result<String>, so we unwrap it
         let token = create_token(&username_token).unwrap();
         // build cookie with token
-        let cookie = Cookie::build(token).http_only(true).secure(true).build();
+        let cookie = Cookie::build((TOKEN, token)).http_only(true).secure(true).build();
         // add cookie to response
         cookies.add(cookie);
 
@@ -211,13 +212,17 @@ pub async fn api_register(
   (status = 200, description = "Logout successful", body = LogoutResponse),
     ),
 )]
-pub async fn api_logout(State(db): State<Arc<Connection>>) -> impl IntoResponse {
+pub async fn api_logout(
+  State(db): State<Arc<Connection>>, 
+  cookies: Cookies
+) -> impl IntoResponse {
     println!("->> Logout endpoint hit");
 
     let res = LogoutResponse {
         message: "Logout successful".to_string(),
         status_code: 200,
     };
+    // removes auth_token from client
+    cookies.remove(Cookie::from(TOKEN));
     Json(res)
-    // maybe remove token or smth here??
 }
