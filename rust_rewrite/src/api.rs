@@ -1,7 +1,7 @@
 use std::sync::Arc;
 // import models from models.rs
-use crate::models::{self, Data, LoginRequest, LoginResponse, LogoutResponse, Page, QueryParams, RegisterRequest, RegisterResponse, ApiErrorResponse};
-use crate::error::{Error, Result};
+use crate::models::{Data, LoginRequest, LoginResponse, LogoutResponse, Page, QueryParams, RegisterRequest, RegisterResponse, ApiErrorResponse};
+use crate::error::Error;
 
 use axum::{
     routing::{get, post},
@@ -10,13 +10,10 @@ use axum::{
     Json, Router,
 };
 use axum::extract::State;
-use hyper::StatusCode;
-use serde_json::{json, Value};
-use tokio_rusqlite::{params, Connection, Result as SQLiteResult};
+use serde_json::json;
+use tokio_rusqlite::{params, Connection};
 use tower_cookies::{Cookie, Cookies};
-use utoipa::openapi::request_body::RequestBody;
 use crate::auth::{self, hash_password, create_token};
-use jsonwebtoken::{encode, Header, EncodingKey};
 
 pub const TOKEN: &str = "token";
 
@@ -60,7 +57,7 @@ pub async fn api_search(State(db): State<Arc<Connection>>, Query(query): Query<Q
     let lang = query.lang.clone().unwrap_or("en".to_string());
 
     let result = db
-        .call(move |conn| { /// .call is async way to execute database operations it takes conn which is self-supplied (it's part of db)  move makes sure q and lang variables stay in scope.
+        .call(move |conn| { // .call is async way to execute database operations it takes conn which is self-supplied (it's part of db)  move makes sure q and lang variables stay in scope.
             let mut stmt = conn.prepare(
                 "SELECT title, url, language, last_updated, content FROM pages WHERE language = ?1 AND content LIKE ?2"
             )?;
@@ -82,7 +79,7 @@ pub async fn api_search(State(db): State<Arc<Connection>>, Query(query): Query<Q
 
     match result {
         Ok(data) => Json(json!({ "data": data })).into_response(),
-        Err(err) => {
+        Err(_err) => {
             return Error::GenericError.into_response(); // easier/better errorhandling
             //Json(json!({ "error": "Internal server error" })).into_response()
         }
