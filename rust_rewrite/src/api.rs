@@ -255,6 +255,7 @@ pub async fn api_logout(
 )]
 async fn root_dummy() {}
 
+#[allow(dead_code)]
 #[utoipa::path(
     get,
     path = "/register",
