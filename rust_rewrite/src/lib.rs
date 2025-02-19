@@ -1,5 +1,4 @@
-// we export our modules here, so they're usable outside of this crate
-
+// we need to export our functions for use in other modules
 
 pub mod error;
 pub mod models;
