@@ -1,5 +1,5 @@
 use password_worker::*;
-use crate::{Result, Error};
+use crate::error::{Result, Error};
 use serde::{Serialize, Deserialize};
 use utoipa::ToSchema;
 use jsonwebtoken::{encode, decode, DecodingKey, Validation, Header, EncodingKey};
