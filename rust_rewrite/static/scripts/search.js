@@ -20,11 +20,12 @@ async function makeSearchRequest() {
     const query = document.getElementById("search-input").value;
     const response = await fetch(`/api/v1/search?q=${encodeURIComponent(query)}`); // This supposedly also needs a 'language' parameter, but I can't find it in the legacy code. Does it mean programming language or human language?
     const searchResults = await response.json();
+    console.log(searchResults);
 
     const resultsDiv = document.getElementById("results");
     resultsDiv.innerHTML = ''; // Clear the previous search results.
 
-    searchResults.forEach(result => {
+    searchResults.data.forEach(result => {
         const resultDiv = document.createElement('div');
         const title = document.createElement('h2');
         const link = document.createElement('a');
