@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById("search-input");
+    const searchButton = document.getElementById("search-button");
 
     // Focus the input field on page load so the user can immediately start typing.
     searchInput.focus();
@@ -10,6 +11,9 @@ document.addEventListener('DOMContentLoaded', () => {
             makeSearchRequest();
         }
     });
+
+    // Search when the user clicks the search button.
+    searchButton.addEventListener('click', makeSearchRequest);
 });
 
 async function makeSearchRequest() {
