@@ -11,11 +11,9 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use axum::extract::State;
 use serde_json::json;
 use tokio_rusqlite::{params, Connection};
 use tower_cookies::{Cookie, Cookies};
-use crate::auth::{self, hash_password, create_token};
 
 
 pub const TOKEN: &str = "auth_token";
@@ -115,9 +113,7 @@ pub async fn api_login(
 
     // get username from payload
     let username = payload.username.clone();
-    // get password from payload
-    let password = payload.password.clone();
-
+    
     let db_result = db
         .call(move |conn| {
             let mut stmt =
@@ -201,7 +197,7 @@ pub async fn api_register(
         .await?;
 
     // sql returns number of affected rows, so we check if it's 1
-    if (res == 1) {
+    if res == 1 {
         let res = RegisterResponse {
             message: "User registered successfully".to_string(),
             status_code: 200,
@@ -231,7 +227,7 @@ pub async fn api_register(
     ),
 )]
 pub async fn api_logout(
-  State(db): State<Arc<Connection>>, 
+  State(_db): State<Arc<Connection>>, 
   cookies: Cookies
 ) -> impl IntoResponse {
     println!("->> Logout endpoint hit");
