@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search</title>
+    <link rel="stylesheet" href="/rust_rewrite/static/style/style.css">
+</head>
+<body>
+    <div class="header-container">
+        <!-- Header gets injected here. -->
+    </div>
+
+    <div>
+        <!-- The original search page used a page reload, but we *do* have an API endpoint for it as far as I can tell. -->
+         <!-- I figure it's a lot easier to use that and populate the search results with JavaScript. -->
+
+        <input id="search-input" placeholder="Search..." />
+        <button onclick="makeSearchRequest()">Search</button>
+    </div>
+
+    <div id="results"></div>
+    <div class="footer-container">
+        <!-- Footer gets injected here. -->
+    </div>
+    <script src="/rust_rewrite/static/scripts/inject.js"></script>
+    <script src="/rust_rewrite/static/scripts/search.js"></script>
+</body>
+</html>

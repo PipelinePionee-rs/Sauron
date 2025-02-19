@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up</title>
+    <link rel="stylesheet" href="/rust_rewrite/static/style/style.css">
+</head>
+<body>
+    <div class="header-container">
+        <!-- Header gets injected here. -->
+    </div>
+    <h2>Sign Up</h2>
+    <div id="error" class="error" style="display: none;"><strong>Error:</strong> <span id="error-message"></span></div>
+    <form id="registerForm">
+        <dl>
+            <dt>Username:</dt>
+            <dd><input type="text" name="username" size="30" id="username" required></dd>
+            <dt>E-Mail:</dt>
+            <dd><input type="email" name="email" size="30" id="email" required></dd>
+            <dt>Password:</dt>
+            <dd><input type="password" name="password" size="30" id="password" required></dd>
+            <dt>Password <small>(repeat)</small>:</dt>
+            <dd><input type="password" name="password2" size="30" id="password2" required></dd>
+        </dl>
+        <div class="actions"><input type="submit" value="Sign Up"></div>
+    </form>
+    <div class="footer-container">
+        <!-- Footer gets injected here. -->
+    </div>
+    <script src="/rust_rewrite/static/scripts/inject.js"></script>
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', async function(event) {
+            event.preventDefault(); // Prevent the default form submission
+
+            const form = event.target;
+            const formData = new FormData(form);
+
+            const data = {
+                username: formData.get('username'),
+                email: formData.get('email'),
+                password: formData.get('password'),
+                password2: formData.get('password2')
+            };
+
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    document.getElementById('error-message').textContent = errorData.error;
+                    document.getElementById('error').style.display = 'block';
+                } else {
+                    // Redirect to login page; should also show a message that registration was successful.
+                    // Potential nice to have: automatically fill in the login form on redirect.
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('error-message').textContent = 'An error occurred. Please try again.';
+                document.getElementById('error').style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
