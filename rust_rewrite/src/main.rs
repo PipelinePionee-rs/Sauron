@@ -28,7 +28,9 @@ use crate::db::create_db_connection;
 // this generates OpenAPI documentation for the paths specified? i think
 // so if we want to add more paths, we just do #[openapi(paths(path1, path2, path3))]
 #[derive(OpenApi)] // this attribute derives the OpenApi impl for the struct
-#[openapi(paths(hello, api::api_search, api::api_login, api::api_register, api::api_logout))] // this attribute specifies the paths that will be documented
+#[openapi(
+  paths(hello, api::api_search, api::api_login, api::api_register, api::api_logout, api::root_dummy, api::register_dummy, api::login_dummy)
+)] // this attribute specifies the paths that will be documented
 // structs are like classes in Java, but without methods
 struct ApiDoc; // this is the struct that will be used to generate the OpenAPI documentation
 
@@ -37,7 +39,7 @@ struct ApiDoc; // this is the struct that will be used to generate the OpenAPI d
 // here we define the path, the response status, the response description, and the response body
 // which will be put into the OpenAPI documentation
 #[utoipa::path(get,
-   path = "/hello", responses(
+  path = "/hello", responses(
     (status = 200, description = "Hello Sauron!", body = String),
   )
 )]
@@ -48,8 +50,8 @@ async fn hello() -> Html<&'static str> {
 #[tokio::main]
 async fn main() {
   // sets server to listen on localhost:8080
-	let listener = TcpListener::bind("localhost:8080").await.unwrap();
-	println!("->> LISTENING on {:?}\n", listener.local_addr());
+  let listener = TcpListener::bind("localhost:8080").await.unwrap();
+  println!("->> LISTENING on {:?}\n", listener.local_addr());
 
 
   async fn main_response_mapper(res: Response) -> Response {
@@ -59,16 +61,18 @@ async fn main() {
 
   let db = create_db_connection().await.unwrap(); // create new database connection
   let db = Arc::new(db); // to manage shared state
+  let open_api_doc = ApiDoc::openapi();
+
 
   let app = Router::new()
-  .route("/hello", get(hello))
-  .nest("/api/v1", api::routes().with_state(db.clone())) // merge the routes from api.rs
-  .merge(SwaggerUi::new("/doc/swagger-ui").url("/doc/api-doc/openapi.json", ApiDoc::openapi())) // add swagger ui, and openapi doc
-  .layer(CookieManagerLayer::new())
-  .layer(middleware::map_response(main_response_mapper));
+    .route("/hello", get(hello))
+    .nest("/api/v1", api::routes().with_state(db.clone())) // merge the routes from api.rs
+    .merge(SwaggerUi::new("/doc/swagger-ui").url("/doc/api-doc/openapi.json", open_api_doc)) // add swagger ui, and openapi doc
+    .layer(CookieManagerLayer::new())
+    .layer(middleware::map_response(main_response_mapper));
 
   // start server 
   axum::serve(listener, app.into_make_service())
-		.await
-		.unwrap();
+    .await
+    .unwrap();
 }
