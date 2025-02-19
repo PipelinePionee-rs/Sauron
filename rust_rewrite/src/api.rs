@@ -253,7 +253,7 @@ pub async fn api_logout(
         (status = 200, description = "Successful Response", body = String, content_type = "text/html")
     )
 )]
-async fn search_dummy() {}
+async fn root_dummy() {}
 
 #[utoipa::path(
     get,
@@ -263,4 +263,4 @@ async fn search_dummy() {}
         (status = 200, description = "Successful Response", body = String, content_type = "text/html")
     )
 )]
-async fn root_handler() {}
+async fn search_dummy() {}
