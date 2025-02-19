@@ -1,24 +1,27 @@
 use std::sync::Arc;
 // import models from models.rs
-use crate::models::{self, Data, LoginRequest, LoginResponse, LogoutResponse, Page, QueryParams, RegisterRequest, RegisterResponse, ApiErrorResponse};
+use crate::models::{
+    self, ApiErrorResponse, Data, LoginRequest, LoginResponse, LogoutResponse, Page, QueryParams,
+    RegisterRequest, RegisterResponse,
+};
 use crate::{Error, Result};
 
+use crate::auth::{self, create_token, hash_password};
+use axum::extract::State;
 use axum::{
-    routing::{get, post},
     extract::Query,
     response::IntoResponse,
+    routing::{get, post},
     Json, Router,
 };
-use axum::extract::State;
 use hyper::StatusCode;
+use jsonwebtoken::{encode, EncodingKey, Header};
 use serde_json::{json, Value};
 use tokio_rusqlite::{params, Connection, Result as SQLiteResult};
 use tower_cookies::{Cookie, Cookies};
 use utoipa::openapi::request_body::RequestBody;
-use crate::auth::{self, hash_password, create_token};
-use jsonwebtoken::{encode, Header, EncodingKey};
 
-pub const TOKEN: &str = "token";
+pub const TOKEN: &str = "auth_token";
 
 // squashes all the routes into one function
 // so we can merge them into the main router
@@ -31,6 +34,9 @@ pub fn routes() -> Router<Arc<Connection>> {
 }
 
 
+// ---------------------------------------------------
+// Search
+// ---------------------------------------------------
 #[utoipa::path(get,
     path = "/api/search",
     params(
@@ -42,20 +48,20 @@ pub fn routes() -> Router<Arc<Connection>> {
    (status = 422, description = "Invalid search query", body = ApiErrorResponse),
     ),
 )]
-pub async fn api_search(State(db): State<Arc<Connection>>, Query(query): Query<QueryParams>) -> impl IntoResponse {
-    println!("->> Search endpoint hit with query: {:?} and lang: {:?}", query.q, query.lang);
+pub async fn api_search(
+    State(db): State<Arc<Connection>>,
+    Query(query): Query<QueryParams>,
+) -> impl IntoResponse {
+    println!(
+        "->> Search endpoint hit with query: {:?} and lang: {:?}",
+        query.q, query.lang
+    );
     // accepts 'q' and 'lang' query parameters
     let q = query.q.clone().unwrap_or_default();
 
     if q.trim().is_empty() {
-      return Error::UnprocessableEntity.into_response(); // easier/better errorhandling
-      //   let error_response = ErrorResponse {
-      //       status_code: 422,
-      //       message: "Query parameter 'q' cannot be empty or absent.".to_string(),
-      //   };
-      //   return (StatusCode::UNPROCESSABLE_ENTITY, Json(error_response)).into_response();
+        return Error::UnprocessableEntity.into_response();
     }
-
 
     let lang = query.lang.clone().unwrap_or("en".to_string());
 
@@ -75,6 +81,9 @@ pub async fn api_search(State(db): State<Arc<Connection>>, Query(query): Query<Q
                 })
             })?;
 
+            // return results as a vector (like ArrayList in Java)
+            // if we wanted to .push or .pop we would have to use a mutable variable
+            // like: let mut results = Vec::new();
             let results: Vec<Page> = rows.filter_map(|res| res.ok()).collect();
             Ok(results)
         })
@@ -83,13 +92,15 @@ pub async fn api_search(State(db): State<Arc<Connection>>, Query(query): Query<Q
     match result {
         Ok(data) => Json(json!({ "data": data })).into_response(),
         Err(err) => {
-            return Error::GenericError.into_response(); // easier/better errorhandling
-            //Json(json!({ "error": "Internal server error" })).into_response()
+            return Error::GenericError.into_response();
         }
     }
 }
 
 
+// ---------------------------------------------------
+// Login
+// ---------------------------------------------------
 #[utoipa::path(post,
   path = "/api/login", responses( 
    (status = 200, description = "Login successful", body = LoginResponse),
@@ -97,16 +108,40 @@ pub async fn api_search(State(db): State<Arc<Connection>>, Query(query): Query<Q
  ),
  request_body = LoginRequest,
 )]
-/// for now, this just accepts a hardcoded username and password
-/// and returns a dummy token in json format
-/// TODO: will need to hash the password and check against a database
-pub async fn api_login(State(db): State<Arc<Connection>>, cookies: Cookies, payload: Json<LoginRequest>) -> impl IntoResponse {
+pub async fn api_login(
+    State(db): State<Arc<Connection>>,
+    cookies: Cookies,
+    payload: Json<LoginRequest>,
+) -> impl IntoResponse {
     println!("->> Login endpoint hit with payload: {:?}", payload);
 
-    let hashed_password = hash_password(&payload.password).await?;
-    println!("hashed_password: {:?}", hashed_password);
-    let is_correct = auth::verify_password(&payload.password, &hashed_password).await?;
-    if payload.username != "admin" || payload.password != "password" {
+    // get username from payload
+    let username = payload.username.clone();
+    // get password from payload
+    let password = payload.password.clone();
+
+    let db_result = db
+        .call(move |conn| {
+            let mut stmt =
+                conn.prepare("SELECT username, password FROM users WHERE username = ?1")?;
+
+            
+            let rows = stmt.query_map(params![&username], |row| Ok((row.get(0)?, row.get(1)?)))?;
+
+            let results: Vec<(String, String)> = rows.filter_map(|res| res.ok()).collect();
+            Ok(results)
+        })
+        .await;
+
+    // extract password from first row, second column of db_result
+    let db_password = &db_result.unwrap()[0].1;
+
+    // verify password
+    let is_correct = auth::verify_password(&payload.password, &db_password).await?;
+
+    println!("->> password match: {:?}", is_correct);
+
+    if is_correct == false {
         return Err(Error::InvalidCredentials);
     }
 
@@ -114,7 +149,7 @@ pub async fn api_login(State(db): State<Arc<Connection>>, cookies: Cookies, payl
     // it returns a Result<String>, so we unwrap it
     let token = create_token(&payload.username).unwrap();
     // build cookie with token
-    let cookie = Cookie::build(token).http_only(true).secure(true).build();
+    let cookie = Cookie::build((TOKEN, token)).http_only(true).secure(true).build();
     // add cookie to response
     cookies.add(cookie);
 
@@ -127,6 +162,9 @@ pub async fn api_login(State(db): State<Arc<Connection>>, cookies: Cookies, payl
 }
 
 
+// ---------------------------------------------------
+// Register
+// ---------------------------------------------------
 #[utoipa::path(post,
   path = "/api/register", responses(
    (status = 200, description = "User registered successfully", body = RegisterResponse),
@@ -135,17 +173,37 @@ pub async fn api_login(State(db): State<Arc<Connection>>, cookies: Cookies, payl
    request_body = RegisterRequest,
 )
 ]
-pub async fn api_register(cookies: Cookies, payload: Json<RegisterRequest>) -> impl IntoResponse {
+pub async fn api_register(
+    db: State<Arc<Connection>>,
+    cookies: Cookies,
+    payload: Json<RegisterRequest>,
+) -> impl IntoResponse {
     println!("->> Register endpoint hit with payload: {:?}", payload);
-    // TODO: will need to hash the password and save to a database
+    // TODO: check if username already exists
 
-    // dummy function to check if credentials are valid
-    // will need to check against db when its working
-    fn valid_credentials() -> bool {
-        true
-    }
+    // since the username is being "used" twice, we have to clone it,
+    // else the first usage in the db function will consume it.
+    // the original payload.username is used for the db function, username_token is used for the token function
 
-    if (valid_credentials()) {
+    // clone username for token generation
+    let username_token = payload.username.clone();
+
+    // hash password
+    let hashed_password = hash_password(&payload.password).await?;
+
+    // insert payload into db
+    let res = db
+        .call(move |conn| {
+            conn.execute(
+                "INSERT INTO users (username, email, password) VALUES (?1, ?2, ?3)",
+                params![&payload.username, &payload.email, &hashed_password], // note we insert hashed password
+            )
+            .map_err(tokio_rusqlite::Error::from) // we have to convert the error type, else rust will complain
+        })
+        .await?;
+
+    // sql returns number of affected rows, so we check if it's 1
+    if (res == 1) {
         let res = RegisterResponse {
             message: "User registered successfully".to_string(),
             status_code: 200,
@@ -153,9 +211,9 @@ pub async fn api_register(cookies: Cookies, payload: Json<RegisterRequest>) -> i
 
         // create token, using function in auth.rs
         // it returns a Result<String>, so we unwrap it
-        let token = create_token(&payload.username).unwrap();
+        let token = create_token(&username_token).unwrap();
         // build cookie with token
-        let cookie = Cookie::build(token).http_only(true).secure(true).build();
+        let cookie = Cookie::build((TOKEN, token)).http_only(true).secure(true).build();
         // add cookie to response
         cookies.add(cookie);
 
@@ -165,18 +223,26 @@ pub async fn api_register(cookies: Cookies, payload: Json<RegisterRequest>) -> i
     }
 }
 
+
+// ---------------------------------------------------
+// Logout
+// ---------------------------------------------------
 #[utoipa::path(get,
     path = "/api/logout", responses(
   (status = 200, description = "Logout successful", body = LogoutResponse),
     ),
 )]
-pub async fn api_logout(State(db): State<Arc<Connection>>) -> impl IntoResponse {
+pub async fn api_logout(
+  State(db): State<Arc<Connection>>, 
+  cookies: Cookies
+) -> impl IntoResponse {
     println!("->> Logout endpoint hit");
 
     let res = LogoutResponse {
         message: "Logout successful".to_string(),
         status_code: 200,
     };
+    // removes auth_token from client
+    cookies.remove(Cookie::from(TOKEN));
     Json(res)
-    // maybe remove token or smth here??
 }
