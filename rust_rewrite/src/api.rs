@@ -264,3 +264,13 @@ async fn root_dummy() {}
     )
 )]
 async fn register_dummy() {}
+
+#[utoipa::path(
+    get,
+    path = "/",
+    summary = "Serve Login Page",
+    responses(
+        (status = 200, description = "Successful Response", body = String, content_type = "text/html")
+    )
+)]
+async fn login_dummy() {}
