@@ -254,3 +254,13 @@ pub async fn api_logout(
     )
 )]
 async fn root_dummy() {}
+
+#[utoipa::path(
+    get,
+    path = "/",
+    summary = "Serve Register Page",
+    responses(
+        (status = 200, description = "Successful Response", body = String, content_type = "text/html")
+    )
+)]
+async fn register_dummy() {}
