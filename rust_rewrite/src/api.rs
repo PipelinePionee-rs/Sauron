@@ -254,13 +254,3 @@ pub async fn api_logout(
     )
 )]
 async fn root_dummy() {}
-
-#[utoipa::path(
-    get,
-    path = "/search",
-    summary = "Search",
-    responses(
-        (status = 200, description = "Successful Response", body = String, content_type = "text/html")
-    )
-)]
-async fn search_dummy() {}
