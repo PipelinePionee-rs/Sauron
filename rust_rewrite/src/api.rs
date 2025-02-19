@@ -142,7 +142,7 @@ pub async fn api_register(cookies: Cookies, payload: Json<RegisterRequest>) -> i
         true
     }
 
-    if (valid_credentials()) {
+    if valid_credentials() {
         let res = RegisterResponse {
             message: "User registered successfully".to_string(),
             status_code: 200,
