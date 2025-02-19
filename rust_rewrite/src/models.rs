@@ -1,8 +1,5 @@
-use axum::response::IntoResponse;
 use serde::{Serialize, Deserialize};
 use utoipa::ToSchema;
-use std::collections::HashMap;
-use jsonwebtoken::{decode, encode, Header, Validation, Algorithm, EncodingKey, DecodingKey};
 
 #[derive(Serialize, ToSchema, Debug)]
 pub struct ApiErrorResponse {

@@ -1,5 +1,5 @@
 use password_worker::*;
-use crate::{Result, Error};
+use crate::error::Result;
 use serde::{Serialize, Deserialize};
 use utoipa::ToSchema;
 use jsonwebtoken::{encode, decode, DecodingKey, Validation, Header, EncodingKey};
@@ -23,7 +23,6 @@ pub async fn hash_password(pwd: &str) -> Result<String> {
 /// pwd is the password from login attempt,
 /// dbpwd is the hashed password from the database
 pub async fn verify_password(pwd: &str, dbpwd: &str) -> Result<bool> {
-  let cost = 12;
   let max_threads = 4;
   let password_worker = PasswordWorker::new_bcrypt(max_threads)?;
   let is_valid = password_worker.verify(pwd, dbpwd).await?;

@@ -1,7 +1,6 @@
 use axum::{response::{IntoResponse, Response}, Json};
 use hyper::StatusCode;
 use std::error::Error as StdError;
-use serde::Serialize;
 use crate::models::ApiErrorResponse;
 
 pub type Result<T> = core::result::Result<T, Error>;

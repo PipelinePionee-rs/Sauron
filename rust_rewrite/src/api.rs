@@ -1,11 +1,8 @@
 use std::sync::Arc;
 // import models from models.rs
-use crate::models::{
-    self, ApiErrorResponse, Data, LoginRequest, LoginResponse, LogoutResponse, Page, QueryParams,
-    RegisterRequest, RegisterResponse,
-};
-use crate::{Error, Result};
 
+use crate::models::{Data, LoginRequest, LoginResponse, LogoutResponse, Page, QueryParams, RegisterRequest, RegisterResponse, ApiErrorResponse};
+use crate::error::Error;
 use crate::auth::{self, create_token, hash_password};
 use axum::extract::State;
 use axum::{
@@ -14,12 +11,10 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use hyper::StatusCode;
-use jsonwebtoken::{encode, EncodingKey, Header};
-use serde_json::{json, Value};
-use tokio_rusqlite::{params, Connection, Result as SQLiteResult};
+use serde_json::json;
+use tokio_rusqlite::{params, Connection};
 use tower_cookies::{Cookie, Cookies};
-use utoipa::openapi::request_body::RequestBody;
+
 
 pub const TOKEN: &str = "auth_token";
 
@@ -66,7 +61,7 @@ pub async fn api_search(
     let lang = query.lang.clone().unwrap_or("en".to_string());
 
     let result = db
-        .call(move |conn| { /// .call is async way to execute database operations it takes conn which is self-supplied (it's part of db)  move makes sure q and lang variables stay in scope.
+        .call(move |conn| { // .call is async way to execute database operations it takes conn which is self-supplied (it's part of db)  move makes sure q and lang variables stay in scope.
             let mut stmt = conn.prepare(
                 "SELECT title, url, language, last_updated, content FROM pages WHERE language = ?1 AND content LIKE ?2"
             )?;
@@ -91,7 +86,8 @@ pub async fn api_search(
 
     match result {
         Ok(data) => Json(json!({ "data": data })).into_response(),
-        Err(err) => {
+
+        Err(_err) => {
             return Error::GenericError.into_response();
         }
     }
@@ -117,9 +113,7 @@ pub async fn api_login(
 
     // get username from payload
     let username = payload.username.clone();
-    // get password from payload
-    let password = payload.password.clone();
-
+    
     let db_result = db
         .call(move |conn| {
             let mut stmt =
@@ -203,7 +197,7 @@ pub async fn api_register(
         .await?;
 
     // sql returns number of affected rows, so we check if it's 1
-    if (res == 1) {
+    if res == 1 {
         let res = RegisterResponse {
             message: "User registered successfully".to_string(),
             status_code: 200,
@@ -233,7 +227,7 @@ pub async fn api_register(
     ),
 )]
 pub async fn api_logout(
-  State(db): State<Arc<Connection>>, 
+  State(_db): State<Arc<Connection>>, 
   cookies: Cookies
 ) -> impl IntoResponse {
     println!("->> Logout endpoint hit");
