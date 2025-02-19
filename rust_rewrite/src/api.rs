@@ -240,3 +240,17 @@ pub async fn api_logout(
     cookies.remove(Cookie::from(TOKEN));
     Json(res)
 }
+
+
+// ---------------------------------------------------
+// Dummy routes
+// ---------------------------------------------------
+#[utoipa::path(
+    get,
+    path = "/",
+    summary = "Serve Root page",
+    responses(
+        (status = 200, description = "Successful Response", body = String, content_type = "text/html")
+    )
+)]
+async fn root_handler() {}
