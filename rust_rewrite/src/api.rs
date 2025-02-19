@@ -6,10 +6,10 @@ use crate::error::Error;
 use crate::auth::{self, create_token, hash_password};
 use axum::extract::State;
 use axum::{
-    extract::Query,
-    response::IntoResponse,
-    routing::{get, post},
-    Json, Router,
+  extract::Query,
+  response::IntoResponse,
+  routing::{get, post},
+  Json, Router,
 };
 use serde_json::json;
 use tokio_rusqlite::{params, Connection};
@@ -21,11 +21,11 @@ pub const TOKEN: &str = "auth_token";
 // squashes all the routes into one function
 // so we can merge them into the main router
 pub fn routes() -> Router<Arc<Connection>> {
-    Router::new()
-        .route("/login", post(api_login))
-        .route("/register", post(api_register))
-        .route("/logout", get(api_logout))
-        .route("/search", get(api_search))
+  Router::new()
+    .route("/login", post(api_login))
+    .route("/register", post(api_register))
+    .route("/logout", get(api_logout))
+    .route("/search", get(api_search))
 }
 
 
@@ -33,64 +33,64 @@ pub fn routes() -> Router<Arc<Connection>> {
 // Search
 // ---------------------------------------------------
 #[utoipa::path(get,
-    path = "/api/search",
-    params(
+  path = "/api/search",
+  params(
     ("q" = String, Query, description = "Search query parameter"),
     ("lang" = Option<String>, Query, description = "Language parameter"),
-    ),
-    responses(
+  ),
+  responses(
    (status = 200, description = "Search successful", body = Data),
    (status = 422, description = "Invalid search query", body = ApiErrorResponse),
-    ),
+  ),
 )]
 pub async fn api_search(
-    State(db): State<Arc<Connection>>,
-    Query(query): Query<QueryParams>,
+  State(db): State<Arc<Connection>>,
+  Query(query): Query<QueryParams>,
 ) -> impl IntoResponse {
-    println!(
-        "->> Search endpoint hit with query: {:?} and lang: {:?}",
-        query.q, query.lang
-    );
-    // accepts 'q' and 'lang' query parameters
-    let q = query.q.clone().unwrap_or_default();
+  println!(
+    "->> Search endpoint hit with query: {:?} and lang: {:?}",
+    query.q, query.lang
+  );
+  // accepts 'q' and 'lang' query parameters
+  let q = query.q.clone().unwrap_or_default();
 
-    if q.trim().is_empty() {
-        return Error::UnprocessableEntity.into_response();
-    }
+  if q.trim().is_empty() {
+    return Error::UnprocessableEntity.into_response();
+  }
 
-    let lang = query.lang.clone().unwrap_or("en".to_string());
+  let lang = query.lang.clone().unwrap_or("en".to_string());
 
-    let result = db
-        .call(move |conn| { // .call is async way to execute database operations it takes conn which is self-supplied (it's part of db)  move makes sure q and lang variables stay in scope.
-            let mut stmt = conn.prepare(
-                "SELECT title, url, language, last_updated, content FROM pages WHERE language = ?1 AND content LIKE ?2"
-            )?;
+  let result = db
+    .call(move |conn| { // .call is async way to execute database operations it takes conn which is self-supplied (it's part of db)  move makes sure q and lang variables stay in scope.
+      let mut stmt = conn.prepare(
+        "SELECT title, url, language, last_updated, content FROM pages WHERE language = ?1 AND content LIKE ?2"
+      )?;
 
-            let rows = stmt.query_map(params![&lang, format!("%{}%", q)], |row| {
-                Ok(Page {
-                    title: row.get(0)?,
-                    url: row.get(1)?,
-                    language: row.get(2)?,
-                    last_updated: row.get(3)?,
-                    content: row.get(4)?,
-                })
-            })?;
-
-            // return results as a vector (like ArrayList in Java)
-            // if we wanted to .push or .pop we would have to use a mutable variable
-            // like: let mut results = Vec::new();
-            let results: Vec<Page> = rows.filter_map(|res| res.ok()).collect();
-            Ok(results)
+      let rows = stmt.query_map(params![&lang, format!("%{}%", q)], |row| {
+        Ok(Page {
+          title: row.get(0)?,
+          url: row.get(1)?,
+          language: row.get(2)?,
+          last_updated: row.get(3)?,
+          content: row.get(4)?,
         })
-        .await;
+      })?;
 
-    match result {
-        Ok(data) => Json(json!({ "data": data })).into_response(),
+      // return results as a vector (like ArrayList in Java)
+      // if we wanted to .push or .pop we would have to use a mutable variable
+      // like: let mut results = Vec::new();
+      let results: Vec<Page> = rows.filter_map(|res| res.ok()).collect();
+      Ok(results)
+    })
+    .await;
 
-        Err(_err) => {
-            return Error::GenericError.into_response();
-        }
+  match result {
+    Ok(data) => Json(json!({ "data": data })).into_response(),
+
+    Err(_err) => {
+      return Error::GenericError.into_response();
     }
+  }
 }
 
 
@@ -105,54 +105,54 @@ pub async fn api_search(
  request_body = LoginRequest,
 )]
 pub async fn api_login(
-    State(db): State<Arc<Connection>>,
-    cookies: Cookies,
-    payload: Json<LoginRequest>,
+  State(db): State<Arc<Connection>>,
+  cookies: Cookies,
+  payload: Json<LoginRequest>,
 ) -> impl IntoResponse {
-    println!("->> Login endpoint hit with payload: {:?}", payload);
+  println!("->> Login endpoint hit with payload: {:?}", payload);
 
-    // get username from payload
-    let username = payload.username.clone();
-    
-    let db_result = db
-        .call(move |conn| {
-            let mut stmt =
-                conn.prepare("SELECT username, password FROM users WHERE username = ?1")?;
+  // get username from payload
+  let username = payload.username.clone();
 
-            
-            let rows = stmt.query_map(params![&username], |row| Ok((row.get(0)?, row.get(1)?)))?;
+  let db_result = db
+    .call(move |conn| {
+      let mut stmt =
+        conn.prepare("SELECT username, password FROM users WHERE username = ?1")?;
 
-            let results: Vec<(String, String)> = rows.filter_map(|res| res.ok()).collect();
-            Ok(results)
-        })
-        .await;
 
-    // extract password from first row, second column of db_result
-    let db_password = &db_result.unwrap()[0].1;
+      let rows = stmt.query_map(params![&username], |row| Ok((row.get(0)?, row.get(1)?)))?;
 
-    // verify password
-    let is_correct = auth::verify_password(&payload.password, &db_password).await?;
+      let results: Vec<(String, String)> = rows.filter_map(|res| res.ok()).collect();
+      Ok(results)
+    })
+    .await;
 
-    println!("->> password match: {:?}", is_correct);
+  // extract password from first row, second column of db_result
+  let db_password = &db_result.unwrap()[0].1;
 
-    if is_correct == false {
-        return Err(Error::InvalidCredentials);
-    }
+  // verify password
+  let is_correct = auth::verify_password(&payload.password, &db_password).await?;
 
-    // create token, using function in auth.rs
-    // it returns a Result<String>, so we unwrap it
-    let token = create_token(&payload.username).unwrap();
-    // build cookie with token
-    let cookie = Cookie::build((TOKEN, token)).http_only(true).secure(true).build();
-    // add cookie to response
-    cookies.add(cookie);
+  println!("->> password match: {:?}", is_correct);
 
-    let res = LoginResponse {
-        message: "Login successful".to_string(),
-        status_code: 200,
-    };
+  if is_correct == false {
+    return Err(Error::InvalidCredentials);
+  }
 
-    Ok(Json(res))
+  // create token, using function in auth.rs
+  // it returns a Result<String>, so we unwrap it
+  let token = create_token(&payload.username).unwrap();
+  // build cookie with token
+  let cookie = Cookie::build((TOKEN, token)).http_only(true).secure(true).build();
+  // add cookie to response
+  cookies.add(cookie);
+
+  let res = LoginResponse {
+    message: "Login successful".to_string(),
+    status_code: 200,
+  };
+
+  Ok(Json(res))
 }
 
 
@@ -168,53 +168,53 @@ pub async fn api_login(
 )
 ]
 pub async fn api_register(
-    db: State<Arc<Connection>>,
-    cookies: Cookies,
-    payload: Json<RegisterRequest>,
+  db: State<Arc<Connection>>,
+  cookies: Cookies,
+  payload: Json<RegisterRequest>,
 ) -> impl IntoResponse {
-    println!("->> Register endpoint hit with payload: {:?}", payload);
-    // TODO: check if username already exists
+  println!("->> Register endpoint hit with payload: {:?}", payload);
+  // TODO: check if username already exists
 
-    // since the username is being "used" twice, we have to clone it,
-    // else the first usage in the db function will consume it.
-    // the original payload.username is used for the db function, username_token is used for the token function
+  // since the username is being "used" twice, we have to clone it,
+  // else the first usage in the db function will consume it.
+  // the original payload.username is used for the db function, username_token is used for the token function
 
-    // clone username for token generation
-    let username_token = payload.username.clone();
+  // clone username for token generation
+  let username_token = payload.username.clone();
 
-    // hash password
-    let hashed_password = hash_password(&payload.password).await?;
+  // hash password
+  let hashed_password = hash_password(&payload.password).await?;
 
-    // insert payload into db
-    let res = db
-        .call(move |conn| {
-            conn.execute(
-                "INSERT INTO users (username, email, password) VALUES (?1, ?2, ?3)",
-                params![&payload.username, &payload.email, &hashed_password], // note we insert hashed password
-            )
-            .map_err(tokio_rusqlite::Error::from) // we have to convert the error type, else rust will complain
-        })
-        .await?;
+  // insert payload into db
+  let res = db
+    .call(move |conn| {
+      conn.execute(
+        "INSERT INTO users (username, email, password) VALUES (?1, ?2, ?3)",
+        params![&payload.username, &payload.email, &hashed_password], // note we insert hashed password
+      )
+        .map_err(tokio_rusqlite::Error::from) // we have to convert the error type, else rust will complain
+    })
+    .await?;
 
-    // sql returns number of affected rows, so we check if it's 1
-    if res == 1 {
-        let res = RegisterResponse {
-            message: "User registered successfully".to_string(),
-            status_code: 200,
-        };
+  // sql returns number of affected rows, so we check if it's 1
+  if res == 1 {
+    let res = RegisterResponse {
+      message: "User registered successfully".to_string(),
+      status_code: 200,
+    };
 
-        // create token, using function in auth.rs
-        // it returns a Result<String>, so we unwrap it
-        let token = create_token(&username_token).unwrap();
-        // build cookie with token
-        let cookie = Cookie::build((TOKEN, token)).http_only(true).secure(true).build();
-        // add cookie to response
-        cookies.add(cookie);
+    // create token, using function in auth.rs
+    // it returns a Result<String>, so we unwrap it
+    let token = create_token(&username_token).unwrap();
+    // build cookie with token
+    let cookie = Cookie::build((TOKEN, token)).http_only(true).secure(true).build();
+    // add cookie to response
+    cookies.add(cookie);
 
-        Ok(Json(res))
-    } else {
-        return Err(Error::InvalidCredentials);
-    }
+    Ok(Json(res))
+  } else {
+    return Err(Error::InvalidCredentials);
+  }
 }
 
 
@@ -222,23 +222,23 @@ pub async fn api_register(
 // Logout
 // ---------------------------------------------------
 #[utoipa::path(get,
-    path = "/api/logout", responses(
+  path = "/api/logout", responses(
   (status = 200, description = "Logout successful", body = LogoutResponse),
-    ),
+  ),
 )]
 pub async fn api_logout(
-  State(_db): State<Arc<Connection>>, 
-  cookies: Cookies
+  State(_db): State<Arc<Connection>>,
+  cookies: Cookies,
 ) -> impl IntoResponse {
-    println!("->> Logout endpoint hit");
+  println!("->> Logout endpoint hit");
 
-    let res = LogoutResponse {
-        message: "Logout successful".to_string(),
-        status_code: 200,
-    };
-    // removes auth_token from client
-    cookies.remove(Cookie::from(TOKEN));
-    Json(res)
+  let res = LogoutResponse {
+    message: "Logout successful".to_string(),
+    status_code: 200,
+  };
+  // removes auth_token from client
+  cookies.remove(Cookie::from(TOKEN));
+  Json(res)
 }
 
 
