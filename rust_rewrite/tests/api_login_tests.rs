@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{hash, sync::Arc};
 
 use axum::{
     body::to_bytes,
@@ -6,7 +6,7 @@ use axum::{
     response::IntoResponse, Json,
 };
 use hyper::StatusCode;
-use rust_rewrite::{api::api_login, models::LoginRequest};
+use rust_rewrite::{api::api_login, auth::hash_password, models::LoginRequest};
 use serde_json::{json, Value};
 use tokio_rusqlite::{params, Connection};
 use tower_cookies::{Cookie, Cookies};
@@ -31,15 +31,19 @@ async fn test_login_success() {
         .await;
     assert!(create_table.is_ok(), "Failed to create table");
 
+    let test_password = "password";
+
+    let hashed_password = hash_password(test_password).await.unwrap();
+
     // Insert a test row.
     let insert = db
-        .call(|conn| {
+        .call(move |conn| {
             conn.execute(
                 "INSERT INTO users (username, password)
                      VALUES (?1, ?2)",
                 params![
                     "admin",
-                    "password",
+                    hashed_password,
                 ],
             )
             .map_err(|err| err.into())
@@ -94,15 +98,18 @@ async fn test_login_fail() {
         .await;
     assert!(create_table.is_ok(), "Failed to create table");
 
+    let test_password = "password";
+    let hashed_password = hash_password(test_password).await.unwrap();
+
     // Insert a test row.
     let insert = db
-        .call(|conn| {
+        .call(move |conn| {
             conn.execute(
                 "INSERT INTO users (username, password)
                      VALUES (?1, ?2)",
                 params![
                     "admin",
-                    "password",
+                    &hashed_password,
                 ],
             )
             .map_err(|err| err.into())
