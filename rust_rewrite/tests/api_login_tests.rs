@@ -72,3 +72,58 @@ async fn test_login_success() {
         "status_code": 200,
     }));
 }
+
+
+#[tokio::test]
+async fn test_login_fail() {
+    // Create an in-memory database.
+    let db = Arc::new(Connection::open_in_memory().await.unwrap());
+
+    // Create the 'users' table.
+    let create_table = db
+        .call(|conn| {
+            conn.execute(
+                "CREATE TABLE users (
+                        username TEXT,
+                        password TEXT
+                    )",
+                [],
+            )
+            .map_err(|err| err.into())
+        })
+        .await;
+    assert!(create_table.is_ok(), "Failed to create table");
+
+    // Insert a test row.
+    let insert = db
+        .call(|conn| {
+            conn.execute(
+                "INSERT INTO users (username, password)
+                     VALUES (?1, ?2)",
+                params![
+                    "admin",
+                    "password",
+                ],
+            )
+            .map_err(|err| err.into())
+        })
+        .await;
+    assert!(insert.is_ok(), "Failed to insert test data");
+
+    let login_request = LoginRequest {
+        username: "admin".to_string(),
+        password: "wrong_password".to_string(),
+    };
+
+    // create dummy cookies
+    let cookies = Cookies::default();
+    cookies.add(Cookie::new("token", "test_token"));
+
+    // Call the API function.
+    let response = api_login(State(db.clone()), cookies, Json(login_request))
+        .await
+        .into_response();
+
+    // Check that the response is Unauthorized.
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+}
