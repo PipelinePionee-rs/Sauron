@@ -265,6 +265,7 @@ async fn root_dummy() {}
 )]
 async fn register_dummy() {}
 
+#[allow(dead_code)]
 #[utoipa::path(
     get,
     path = "/login",
