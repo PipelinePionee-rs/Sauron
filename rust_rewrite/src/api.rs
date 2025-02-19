@@ -1,7 +1,7 @@
 use std::sync::Arc;
 // import models from models.rs
 use crate::models::{self, Data, LoginRequest, LoginResponse, LogoutResponse, Page, QueryParams, RegisterRequest, RegisterResponse, ApiErrorResponse};
-use crate::{Error, Result};
+use crate::error::{Error, Result};
 
 use axum::{
     routing::{get, post},
