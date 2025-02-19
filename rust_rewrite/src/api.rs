@@ -33,6 +33,10 @@ pub fn routes() -> Router<Arc<Connection>> {
         .route("/search", get(api_search))
 }
 
+
+// ---------------------------------------------------
+// Search
+// ---------------------------------------------------
 #[utoipa::path(get,
     path = "/api/search",
     params(
@@ -77,6 +81,9 @@ pub async fn api_search(
                 })
             })?;
 
+            // return results as a vector (like ArrayList in Java)
+            // if we wanted to .push or .pop we would have to use a mutable variable
+            // like: let mut results = Vec::new();
             let results: Vec<Page> = rows.filter_map(|res| res.ok()).collect();
             Ok(results)
         })
@@ -90,6 +97,10 @@ pub async fn api_search(
     }
 }
 
+
+// ---------------------------------------------------
+// Login
+// ---------------------------------------------------
 #[utoipa::path(post,
   path = "/api/login", responses( 
    (status = 200, description = "Login successful", body = LoginResponse),
@@ -150,6 +161,10 @@ pub async fn api_login(
     Ok(Json(res))
 }
 
+
+// ---------------------------------------------------
+// Register
+// ---------------------------------------------------
 #[utoipa::path(post,
   path = "/api/register", responses(
    (status = 200, description = "User registered successfully", body = RegisterResponse),
@@ -187,7 +202,7 @@ pub async fn api_register(
         })
         .await?;
 
-    // sql returns 1 if successful, 0 if not
+    // sql returns number of affected rows, so we check if it's 1
     if (res == 1) {
         let res = RegisterResponse {
             message: "User registered successfully".to_string(),
@@ -208,6 +223,10 @@ pub async fn api_register(
     }
 }
 
+
+// ---------------------------------------------------
+// Logout
+// ---------------------------------------------------
 #[utoipa::path(get,
     path = "/api/logout", responses(
   (status = 200, description = "Logout successful", body = LogoutResponse),
