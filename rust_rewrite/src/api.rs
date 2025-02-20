@@ -192,6 +192,22 @@ pub async fn api_register(
         return Err(Error::InvalidCredentials);
     }
 
+    let username = payload.username.clone();
+
+    // check if username already exists
+    let res = db
+        .call(move |conn| {
+            let mut stmt = conn.prepare("SELECT username FROM users WHERE username = ?1")?;
+            let mut rows = stmt.query(params![username])?;
+            Ok(rows.next()?.is_some())
+        })
+        .await;
+
+    // if username exists, return error
+    if let Ok(true) = res {
+        return Err(Error::UsernameExists);
+    }
+
     // since the username is being "used" twice, we have to clone it,
     // else the first usage in the db function will consume it.
     // the original payload.username is used for the db function, username_token is used for the token function
