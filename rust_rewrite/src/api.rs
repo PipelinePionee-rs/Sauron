@@ -147,7 +147,7 @@ pub async fn api_login(
     .http_only(true)
     .secure(true)
     .path("/")
-    .finish();
+    .build();
   // add cookie to response
   cookies.add(cookie);
 
