@@ -104,3 +104,51 @@ async fn test_register_invalid_email() {
 
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
+
+#[tokio::test]
+async fn test_register_username_exists() {
+    let db = Arc::new(Connection::open_in_memory().await.unwrap());
+
+    // Create the users table
+    let create_table = db
+        .call(|conn| {
+            conn.execute(
+                "CREATE TABLE users (
+                    username TEXT,
+                    email TEXT,
+                    password TEXT
+                )",
+                [],
+            )
+            .map_err(|err| err.into())
+        })
+        .await;
+    assert!(create_table.is_ok(), "Failed to create table");
+
+    // Insert a test row
+    let insert = db
+        .call(move |conn| {
+            conn.execute(
+                "INSERT INTO users (username, email, password)
+                VALUES (?1, ?2, ?3)",
+                params!["existinguser", "test@example.com", "password123"],
+            )
+            .map_err(|err| err.into())
+        })
+        .await;
+    assert!(insert.is_ok(), "Failed to insert test data");
+
+    let register_request = RegisterRequest {
+        username: "existinguser".to_string(),
+        email: "test@example.com".to_string(),
+        password: "password123".to_string(),
+    };
+
+    let cookies = Cookies::default();
+
+    let response = api_register(State(db.clone()), cookies, Json(register_request))
+        .await
+        .into_response();
+
+    assert_eq!(response.status(), StatusCode::CONFLICT);
+}
