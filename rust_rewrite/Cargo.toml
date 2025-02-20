@@ -25,6 +25,8 @@ utoipa-swagger-ui = { version = "9.0.0", features = ["axum"] }
 tokio-rusqlite = { version = "0.6", features = ["bundled"] }
 serde_json = "1.0.138"
 password-worker = "0.4.0"
+lazy_static = "1.5.0"
+regex = "1.11.1"
 
 [dev-dependencies]
 anyhow = "1"
