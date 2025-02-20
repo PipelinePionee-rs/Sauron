@@ -11,6 +11,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use hyper::StatusCode;
 use serde_json::json;
 use tokio_rusqlite::{params, Connection};
 use tower_cookies::{Cookie, Cookies};
@@ -163,6 +164,7 @@ pub async fn api_login(
   path = "/api/register", responses(
    (status = 200, description = "User registered successfully", body = RegisterResponse),
    (status = 401, description = "Invalid credentials", body = ApiErrorResponse),
+   (status = 409, description = "Username already exists", body = ApiErrorResponse),
   ),
    request_body = RegisterRequest,
 )
@@ -173,7 +175,31 @@ pub async fn api_register(
     payload: Json<RegisterRequest>,
 ) -> impl IntoResponse {
     println!("->> Register endpoint hit with payload: {:?}", payload);
-    // TODO: check if username already exists
+
+    // Check if username already exists.
+    // I *thought* it was unneccesary to clone the payload first, but apparently it is?
+    // I'll level with you, I'm still kind of confused by Rust.
+
+    let username_clone = payload.username.clone();
+
+    let username_check = db
+        .call(move |conn| {
+            let mut stmt = conn.prepare("SELECT COUNT(*) FROM users WHERE username = ?1")?;
+            let count: i64 = stmt.query_row(params![&username_clone], |row| row.get(0))?;
+            Ok(count)
+        })
+        .await?;
+
+    // Return HTTP Status 409 (Conflict) if username already exists.
+    if username_check > 0 {
+        let error_response = ApiErrorResponse {
+            error: "Username already exists".to_string(),
+            status_code: 409,
+            message: "Username already exists".to_string(),
+        };
+
+        return Ok((StatusCode::CONFLICT, Json(error_response)).into_response());
+    }
 
     // since the username is being "used" twice, we have to clone it,
     // else the first usage in the db function will consume it.
@@ -211,7 +237,7 @@ pub async fn api_register(
         // add cookie to response
         cookies.add(cookie);
 
-        Ok(Json(res))
+        Ok(Json(res).into_response()) // The compiler started throwing a fit over a type mismatch here; hopefully using into_response() fixes that without breaking anything else.
     } else {
         return Err(Error::InvalidCredentials);
     }
