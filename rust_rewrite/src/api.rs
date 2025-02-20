@@ -150,16 +150,18 @@ pub async fn api_login(
         return Err(Error::InvalidCredentials);
     }
 
-    // create token, using function in auth.rs
-    // it returns a Result<String>, so we unwrap it
-    let token = create_token(&payload.username).unwrap();
-    // build cookie with token
-    let cookie = Cookie::build((TOKEN, token))
-        .http_only(true)
-        .secure(true)
-        .build();
-    // add cookie to response
-    cookies.add(cookie);
+
+  // create token, using function in auth.rs
+  // it returns a Result<String>, so we unwrap it
+  let token = create_token(&payload.username).unwrap();
+  // build cookie with token
+  let cookie = Cookie::build((TOKEN, token))
+    .http_only(true)
+    .secure(true)
+    .path("/")
+    .build();
+  // add cookie to response
+  cookies.add(cookie);
 
     let res = LoginResponse {
         message: "Login successful".to_string(),
