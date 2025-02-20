@@ -14,7 +14,7 @@ use axum::{
 use serde_json::json;
 use tokio_rusqlite::{params, Connection};
 use tower_cookies::{Cookie, Cookies};
-
+use tower_cookies::cookie::CookieJar;
 
 pub const TOKEN: &str = "auth_token";
 
@@ -143,7 +143,11 @@ pub async fn api_login(
   // it returns a Result<String>, so we unwrap it
   let token = create_token(&payload.username).unwrap();
   // build cookie with token
-  let cookie = Cookie::build((TOKEN, token)).http_only(true).secure(true).build();
+  let cookie = Cookie::build((TOKEN, token))
+    .http_only(true)
+    .secure(true)
+    .path("/")
+    .build();
   // add cookie to response
   cookies.add(cookie);
 

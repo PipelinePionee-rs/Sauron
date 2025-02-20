@@ -71,10 +71,7 @@ async fn main() {
     .merge(SwaggerUi::new("/doc/swagger-ui").url("/doc/api-doc/openapi.json", open_api_doc)) // add swagger ui, and openapi doc
     .layer(CookieManagerLayer::new())
     .layer(middleware::map_response(main_response_mapper))
-    .layer(CorsLayer::new() // probably should not be in production.
-                .allow_origin(Any) // Allows all origins (unsafe for production)
-                .allow_methods(Any) // Allows all HTTP methods
-                .allow_headers(Any)); // allow all headers
+    .layer(CorsLayer::new().allow_credentials(true));
 
   // start server 
   axum::serve(listener, app.into_make_service())
