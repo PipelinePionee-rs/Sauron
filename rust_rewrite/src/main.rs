@@ -5,6 +5,7 @@ mod models;
 mod api;
 mod auth;
 mod db;
+mod repository;
 
 use std::sync::Arc;
 use api::{api_search, api_login, api_register, api_logout};
