@@ -8,4 +8,4 @@
     // Lars burge i DB.rs
 
 //TODO: Du skal lave en metode som er den logik Lars allerede har lavet i api 
-let myrepo = pageRepository::new("sauron.db")
+//let myrepo = pageRepository::new("sauron.db")
