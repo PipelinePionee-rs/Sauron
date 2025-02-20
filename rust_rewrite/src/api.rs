@@ -182,6 +182,8 @@ pub async fn api_register(
 
     let username_clone = payload.username.clone();
 
+    println!("->> Checking if username exists: {:?}", username_clone);
+
     let username_check = db
         .call(move |conn| {
             let mut stmt = conn.prepare("SELECT COUNT(*) FROM users WHERE username = ?1")?;
@@ -190,6 +192,7 @@ pub async fn api_register(
         })
         .await?;
 
+        println!("->> Username check: {:?}", username_check);
     // Return HTTP Status 409 (Conflict) if username already exists.
     if username_check > 0 {
         let error_response = ApiErrorResponse {
