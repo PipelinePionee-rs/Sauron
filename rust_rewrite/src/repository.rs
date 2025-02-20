@@ -6,6 +6,9 @@ struct PageRepository{
 }
 
 //TODO: Lav en implementation af pageRepository impl
+impl PageRepository {
+    //husk public (også i struct)
+}
 
 // TODO: lav 1 asosiated function new() som er en slags construktor den skal nok tage en path til DB filen
     //så du kan lave en connetion. bliver kaldt ved at sige pageRepository::new()
