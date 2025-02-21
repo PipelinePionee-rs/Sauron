@@ -8,9 +8,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Search when the user presses Enter.
     searchInput.addEventListener('keypress', (event) => {
         if (event.key === 'Enter') {
-            makeSearchRequest();
+            search();
         }
     });
+
+    const params = new URLSearchParams(window.location.search);
+    const value = params.get('q'); // Get a specific query param
+    if(value) {
+        makeSearchRequest();
+    }
 
     // Search when the user clicks the search button.
     // searchButton.addEventListener('click', makeSearchRequest);
