@@ -14,6 +14,8 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+
+use hyper::StatusCode;
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde_json::json;
@@ -178,6 +180,7 @@ pub async fn api_login(
   path = "/api/register", responses(
    (status = 200, description = "User registered successfully", body = RegisterResponse),
    (status = 401, description = "Invalid credentials", body = ApiErrorResponse),
+   (status = 409, description = "Username already exists", body = ApiErrorResponse),
   ),
    request_body = RegisterRequest,
 )
@@ -208,6 +211,7 @@ pub async fn api_register(
     // if username exists, return error
     if let Ok(true) = res {
         return Err(Error::UsernameExists);
+
     }
 
     // since the username is being "used" twice, we have to clone it,
@@ -249,7 +253,7 @@ pub async fn api_register(
         // add cookie to response
         cookies.add(cookie);
 
-        Ok(Json(res))
+        Ok(Json(res).into_response()) // The compiler started throwing a fit over a type mismatch here; hopefully using into_response() fixes that without breaking anything else.
     } else {
         Err(Error::InvalidCredentials)
     }
