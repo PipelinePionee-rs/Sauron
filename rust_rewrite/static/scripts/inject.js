@@ -52,6 +52,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
     */
 
-    loadFragment('/rust_rewrite/static/fragments/header.html', 'header-container');
-    loadFragment('/rust_rewrite/static/fragments/footer.html', 'footer-container');
+    loadFragment('./fragments/header.html', 'header-container');
+    loadFragment('./fragments/footer.html', 'footer-container');
 });

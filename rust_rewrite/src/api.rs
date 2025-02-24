@@ -1,9 +1,12 @@
 use std::sync::Arc;
 // import models from models.rs
 
-use crate::models::{Data, LoginRequest, LoginResponse, LogoutResponse, Page, QueryParams, RegisterRequest, RegisterResponse, ApiErrorResponse};
-use crate::error::Error;
 use crate::auth::{self, create_token, hash_password};
+use crate::error::Error;
+use crate::models::{
+    ApiErrorResponse, Data, LoginRequest, LoginResponse, LogoutResponse, Page, QueryParams,
+    RegisterRequest, RegisterResponse,
+};
 use axum::extract::State;
 use axum::{
     extract::Query,
@@ -11,13 +14,25 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+
 use hyper::StatusCode;
+use lazy_static::lazy_static;
+use regex::Regex;
 use serde_json::json;
 use tokio_rusqlite::{params, Connection};
 use tower_cookies::{Cookie, Cookies};
 
-
 pub const TOKEN: &str = "auth_token";
+
+
+// god i hate regex
+// i hope chatgpt wrote this correctly
+lazy_static! {
+    static ref EMAIL_REGEX: Regex = Regex::new(
+        r"^([a-z0-9_+]([a-z0-9_+.]*[a-z0-9_+])?)@([a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,6})"
+    )
+    .unwrap();
+}
 
 // squashes all the routes into one function
 // so we can merge them into the main router
@@ -29,20 +44,19 @@ pub fn routes() -> Router<Arc<Connection>> {
         .route("/search", get(api_search))
 }
 
-
 // ---------------------------------------------------
 // Search
 // ---------------------------------------------------
 #[utoipa::path(get,
-    path = "/api/search",
-    params(
+  path = "/api/search",
+  params(
     ("q" = String, Query, description = "Search query parameter"),
     ("lang" = Option<String>, Query, description = "Language parameter"),
-    ),
-    responses(
+  ),
+  responses(
    (status = 200, description = "Search successful", body = Data),
    (status = 422, description = "Invalid search query", body = ApiErrorResponse),
-    ),
+  ),
 )]
 pub async fn api_search(
     State(db): State<Arc<Connection>>,
@@ -62,28 +76,28 @@ pub async fn api_search(
     let lang = query.lang.clone().unwrap_or("en".to_string());
 
     let result = db
-        .call(move |conn| { // .call is async way to execute database operations it takes conn which is self-supplied (it's part of db)  move makes sure q and lang variables stay in scope.
-            let mut stmt = conn.prepare(
-                "SELECT title, url, language, last_updated, content FROM pages WHERE language = ?1 AND content LIKE ?2"
-            )?;
+    .call(move |conn| { // .call is async way to execute database operations it takes conn which is self-supplied (it's part of db)  move makes sure q and lang variables stay in scope.
+      let mut stmt = conn.prepare(
+        "SELECT title, url, language, last_updated, content FROM pages WHERE language = ?1 AND content LIKE ?2"
+      )?;
 
-            let rows = stmt.query_map(params![&lang, format!("%{}%", q)], |row| {
-                Ok(Page {
-                    title: row.get(0)?,
-                    url: row.get(1)?,
-                    language: row.get(2)?,
-                    last_updated: row.get(3)?,
-                    content: row.get(4)?,
-                })
-            })?;
-
-            // return results as a vector (like ArrayList in Java)
-            // if we wanted to .push or .pop we would have to use a mutable variable
-            // like: let mut results = Vec::new();
-            let results: Vec<Page> = rows.filter_map(|res| res.ok()).collect();
-            Ok(results)
+      let rows = stmt.query_map(params![&lang, format!("%{}%", q)], |row| {
+        Ok(Page {
+          title: row.get(0)?,
+          url: row.get(1)?,
+          language: row.get(2)?,
+          last_updated: row.get(3)?,
+          content: row.get(4)?,
         })
-        .await;
+      })?;
+
+      // return results as a vector (like ArrayList in Java)
+      // if we wanted to .push or .pop we would have to use a mutable variable
+      // like: let mut results = Vec::new();
+      let results: Vec<Page> = rows.filter_map(|res| res.ok()).collect();
+      Ok(results)
+    })
+    .await;
 
     match result {
         Ok(data) => Json(json!({ "data": data })).into_response(),
@@ -93,7 +107,6 @@ pub async fn api_search(
         }
     }
 }
-
 
 // ---------------------------------------------------
 // Login
@@ -114,13 +127,12 @@ pub async fn api_login(
 
     // get username from payload
     let username = payload.username.clone();
-    
+
     let db_result = db
         .call(move |conn| {
             let mut stmt =
                 conn.prepare("SELECT username, password FROM users WHERE username = ?1")?;
 
-            
             let rows = stmt.query_map(params![&username], |row| Ok((row.get(0)?, row.get(1)?)))?;
 
             let results: Vec<(String, String)> = rows.filter_map(|res| res.ok()).collect();
@@ -140,13 +152,18 @@ pub async fn api_login(
         return Err(Error::InvalidCredentials);
     }
 
-    // create token, using function in auth.rs
-    // it returns a Result<String>, so we unwrap it
-    let token = create_token(&payload.username).unwrap();
-    // build cookie with token
-    let cookie = Cookie::build((TOKEN, token)).http_only(true).secure(true).build();
-    // add cookie to response
-    cookies.add(cookie);
+
+  // create token, using function in auth.rs
+  // it returns a Result<String>, so we unwrap it
+  let token = create_token(&payload.username).unwrap();
+  // build cookie with token
+  let cookie = Cookie::build((TOKEN, token))
+    .http_only(true)
+    .secure(true)
+    .path("/")
+    .build();
+  // add cookie to response
+  cookies.add(cookie);
 
     let res = LoginResponse {
         message: "Login successful".to_string(),
@@ -155,7 +172,6 @@ pub async fn api_login(
 
     Ok(Json(res))
 }
-
 
 // ---------------------------------------------------
 // Register
@@ -176,32 +192,26 @@ pub async fn api_register(
 ) -> impl IntoResponse {
     println!("->> Register endpoint hit with payload: {:?}", payload);
 
-    // Check if username already exists.
-    // I *thought* it was unneccesary to clone the payload first, but apparently it is?
-    // I'll level with you, I'm still kind of confused by Rust.
+    // Validate email format
+    if !EMAIL_REGEX.is_match(&payload.email.to_lowercase()) {
+        return Err(Error::InvalidCredentials);
+    }
 
-    let username_clone = payload.username.clone();
+    let username = payload.username.clone();
 
-    println!("->> Checking if username exists: {:?}", username_clone);
-
-    let username_check = db
+    // check if username already exists
+    let res = db
         .call(move |conn| {
-            let mut stmt = conn.prepare("SELECT COUNT(*) FROM users WHERE username = ?1")?;
-            let count: i64 = stmt.query_row(params![&username_clone], |row| row.get(0))?;
-            Ok(count)
+            let mut stmt = conn.prepare("SELECT username FROM users WHERE username = ?1")?;
+            let mut rows = stmt.query(params![username])?;
+            Ok(rows.next()?.is_some())
         })
-        .await?;
+        .await;
 
-        println!("->> Username check: {:?}", username_check);
-    // Return HTTP Status 409 (Conflict) if username already exists.
-    if username_check > 0 {
-        let error_response = ApiErrorResponse {
-            error: "Username already exists".to_string(),
-            status_code: 409,
-            message: "Username already exists".to_string(),
-        };
+    // if username exists, return error
+    if let Ok(true) = res {
+        return Err(Error::UsernameExists);
 
-        return Ok((StatusCode::CONFLICT, Json(error_response)).into_response());
     }
 
     // since the username is being "used" twice, we have to clone it,
@@ -236,7 +246,10 @@ pub async fn api_register(
         // it returns a Result<String>, so we unwrap it
         let token = create_token(&username_token).unwrap();
         // build cookie with token
-        let cookie = Cookie::build((TOKEN, token)).http_only(true).secure(true).build();
+        let cookie = Cookie::build((TOKEN, token))
+            .http_only(true)
+            .secure(true)
+            .build();
         // add cookie to response
         cookies.add(cookie);
 
@@ -246,19 +259,15 @@ pub async fn api_register(
     }
 }
 
-
 // ---------------------------------------------------
 // Logout
 // ---------------------------------------------------
 #[utoipa::path(get,
-    path = "/api/logout", responses(
+  path = "/api/logout", responses(
   (status = 200, description = "Logout successful", body = LogoutResponse),
-    ),
+  ),
 )]
-pub async fn api_logout(
-  State(_db): State<Arc<Connection>>, 
-  cookies: Cookies
-) -> impl IntoResponse {
+pub async fn api_logout(State(_db): State<Arc<Connection>>, cookies: Cookies) -> impl IntoResponse {
     println!("->> Logout endpoint hit");
 
     let res = LogoutResponse {
@@ -269,3 +278,39 @@ pub async fn api_logout(
     cookies.remove(Cookie::from(TOKEN));
     Json(res)
 }
+
+// ---------------------------------------------------
+// Dummy routes
+// ---------------------------------------------------
+#[allow(dead_code)]
+#[utoipa::path(
+    get,
+    path = "/",
+    summary = "Serve Root page",
+    responses(
+        (status = 200, description = "Successful Response", body = String, content_type = "text/html")
+    )
+)]
+async fn root_dummy() {}
+
+#[allow(dead_code)]
+#[utoipa::path(
+    get,
+    path = "/register",
+    summary = "Serve Register Page",
+    responses(
+        (status = 200, description = "Successful Response", body = String, content_type = "text/html")
+    )
+)]
+async fn register_dummy() {}
+
+#[allow(dead_code)]
+#[utoipa::path(
+    get,
+    path = "/login",
+    summary = "Serve Login Page",
+    responses(
+        (status = 200, description = "Successful Response", body = String, content_type = "text/html")
+    )
+)]
+async fn login_dummy() {}

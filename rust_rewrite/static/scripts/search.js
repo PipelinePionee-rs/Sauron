@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById("search-input");
-    const searchButton = document.getElementById("search-button");
+    // const searchButton = document.getElementById("search-button");
 
     // Focus the input field on page load so the user can immediately start typing.
     searchInput.focus();
@@ -8,23 +8,37 @@ document.addEventListener('DOMContentLoaded', () => {
     // Search when the user presses Enter.
     searchInput.addEventListener('keypress', (event) => {
         if (event.key === 'Enter') {
-            makeSearchRequest();
+            search();
         }
     });
 
+    const params = new URLSearchParams(window.location.search);
+    const value = params.get('q'); // Get a specific query param
+    if(value) {
+        makeSearchRequest();
+    }
+
     // Search when the user clicks the search button.
-    searchButton.addEventListener('click', makeSearchRequest);
+    // searchButton.addEventListener('click', makeSearchRequest);
 });
+
+function search() {
+    const query = document.getElementById("search-input").value;
+    if (query) {
+      window.location.href = `/?q=${encodeURIComponent(query)}`;
+    }
+}
 
 async function makeSearchRequest() {
     const query = document.getElementById("search-input").value;
     const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`); // This supposedly also needs a 'language' parameter, but I can't find it in the legacy code. Does it mean programming language or human language?
     const searchResults = await response.json();
+    console.log(searchResults);
 
     const resultsDiv = document.getElementById("results");
     resultsDiv.innerHTML = ''; // Clear the previous search results.
 
-    searchResults.forEach(result => {
+    searchResults.data.forEach(result => {
         const resultDiv = document.createElement('div');
         const title = document.createElement('h2');
         const link = document.createElement('a');

@@ -10,6 +10,7 @@ pub type Result<T> = core::result::Result<T, Error>;
 pub enum Error {
   LoginFail,
   InvalidCredentials,
+  UsernameExists,
   HashError(Box<dyn StdError + Send + Sync + 'static>),
   GenericError,
   UnprocessableEntity
@@ -44,6 +45,11 @@ impl IntoResponse for Error {
         "Internal Server Error", 
         "Internal Server Error"
       ),
+      Error::UsernameExists => (
+        StatusCode::CONFLICT,
+        "Username already exists",
+        "Username already exists. please try a different username."
+      ),
     };
 
     let body = Json(ApiErrorResponse {
@@ -53,24 +59,6 @@ impl IntoResponse for Error {
     });
     eprintln!("->> Error: status: {:?} {:?} ", body.status_code, body.error);
     (status, body).into_response()
-   
-    // match self {
-    //   Error::LoginFail => {
-    //     (StatusCode::UNAUTHORIZED, "Login failed").into_response()
-    //   }
-    //   Error::InvalidCredentials => {
-    //     (StatusCode::UNAUTHORIZED, "Invalid credentials").into_response()
-    //   }
-    //   Error::UnprocessableEntity => {
-    //     (StatusCode::UNPROCESSABLE_ENTITY, "Unprocessable Entity").into_response()
-    //   }
-    //   Error::HashError(_) => {
-    //     (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error").into_response()
-    //   }
-    //   Error::GenericError => {
-    //     (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error").into_response()
-    //   }
-    // }
   }
 }
 
