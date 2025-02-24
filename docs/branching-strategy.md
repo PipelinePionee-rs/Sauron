@@ -1,1 +1,1 @@
-(./images/image-243.webp)
+[Branching strategy](./images/image-243.png)
