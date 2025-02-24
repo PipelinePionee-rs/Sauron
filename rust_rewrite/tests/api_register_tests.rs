@@ -60,7 +60,7 @@ async fn test_register_success() {
     let user_exists = db
         .call(|conn| {
             let mut stmt = conn.prepare("SELECT username FROM users WHERE username = ?1")?;
-            let rows = stmt.query_map(params!["newuser"], |row| Ok(row.get::<_, String>(0)?))?;
+            let rows = stmt.query_map(params!["newuser"], |row| row.get::<_, String>(0))?;
             let results: Vec<String> = rows.filter_map(|r| r.ok()).collect();
             Ok(results.len() == 1)
         })

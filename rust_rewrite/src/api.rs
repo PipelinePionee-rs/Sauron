@@ -101,7 +101,7 @@ pub async fn api_search(
         Ok(data) => Json(json!({ "data": data })).into_response(),
 
         Err(_err) => {
-            return Error::GenericError.into_response();
+            Error::GenericError.into_response()
         }
     }
 }
@@ -142,11 +142,11 @@ pub async fn api_login(
     let db_password = &db_result.unwrap()[0].1;
 
     // verify password
-    let is_correct = auth::verify_password(&payload.password, &db_password).await?;
+    let is_correct = auth::verify_password(&payload.password, db_password).await?;
 
     println!("->> password match: {:?}", is_correct);
 
-    if is_correct == false {
+    if !is_correct {
         return Err(Error::InvalidCredentials);
     }
 
@@ -251,7 +251,7 @@ pub async fn api_register(
 
         Ok(Json(res))
     } else {
-        return Err(Error::InvalidCredentials);
+        Err(Error::InvalidCredentials)
     }
 }
 
