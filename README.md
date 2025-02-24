@@ -1,6 +1,6 @@
 # Sauron Search Engine
 
-![Build](https://github.com/PipelinePionee-rs/Sauron/actions/workflows/rust.yml/badge.svg?branch=main) ![Rust-Clippy](https://github.com/PipelinePionee-rs/Sauron/actions/workflows/rust-clippy.yml/badge.svg?branch=main) [![API Documentation](https://img.shields.io/badge/API%20Documentation-swagger--ui-blue)](https://sauron.tolana.dev/doc/swagger-ui) 
+![Build](https://github.com/PipelinePionee-rs/Sauron/actions/workflows/rust.yml/badge.svg?branch=dev) ![Rust-Clippy](https://github.com/PipelinePionee-rs/Sauron/actions/workflows/rust-clippy.yml/badge.svg?branch=dev) [![API Documentation](https://img.shields.io/badge/API%20Documentation-swagger--ui-blue)](https://sauron.tolana.dev/doc/swagger-ui) 
 
 
 ## Overview
