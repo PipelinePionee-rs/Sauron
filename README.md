@@ -1,5 +1,8 @@
 # Sauron Search Engine
 
+![Build](https://github.com/PipelinePionee-rs/Sauron/actions/workflows/rust.yml/badge.svg?branch=main) [![API Documentation](https://img.shields.io/badge/API%20Documentation-swagger--ui-blue)](https://sauron.tolana.dev/doc/swagger-ui)
+
+
 ## Overview
 This is a search engine that allows users to search for keywords in coding languages. The program is written in Rust with Axum. 
 
