@@ -310,3 +310,14 @@ async fn register_dummy() {}
     )
 )]
 async fn login_dummy() {}
+
+#[allow(dead_code)]
+#[utoipa::path(
+    get,
+    path = "/weather",
+    summary = "Serve Weather Page",
+    responses(
+        (status = 200, description = "Successful Response", body = String, content_type = "text/html")
+    )
+)]
+async fn weather_dummy() {}
