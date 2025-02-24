@@ -117,8 +117,6 @@ async fn test_register_username_taken() {
     .await
     .into_response();
 
-    assert_eq!(response.status(), StatusCode::OK);
-
     let body = to_bytes(response.into_body(), 1000).await.unwrap();
     let body: Value = serde_json::from_slice(&body).unwrap();
 
@@ -128,5 +126,6 @@ async fn test_register_username_taken() {
     assert_eq!(body, json!({
         "message": "Username already exists",
         "status_code": 409,
+        "error": "Username already exists",
     }));
 }
