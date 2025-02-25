@@ -114,14 +114,15 @@ async fn test_api_search_empty_query() {
 #[tokio::test]
 async fn test_api_search_db_error() {
     // Create an in-memory database but do NOT create the 'pages' table.
-    let db = Arc::new(Connection::open_in_memory().await.unwrap());
+    let db_connection = Connection::open_in_memory().await.unwrap();
+    let repo = Arc::new(PageRepository {connection: db_connection});
 
     let query_params = QueryParams {
         q: Some("test".to_string()),
         lang: Some("en".to_string()),
     };
 
-    let response = api_search(State(db.clone()), Query(query_params))
+    let response = api_search(State(repo), Query(query_params))
         .await
         .into_response();
 
