@@ -1,3 +1,4 @@
+use anyhow::Ok;
 //TODO: Lav en pageRepository struckt. Den skal have 1 field som skal være en Connection type læs længere nede
 use tokio_rusqlite::{Connection, Result};
 use rusqlite::params;
@@ -12,7 +13,7 @@ impl PageRepository {
     //husk public (også i struct)
     pub async fn new(db_path: &str) -> Result<Self> {
         let connection = Connection::open(db_path).await?;
-        OK(Self {connection})
+        Ok(Self {connection})
     }
 
     async fn search(&self, lang: String, q: String) -> Result<Vec<Page>> {
@@ -23,7 +24,20 @@ impl PageRepository {
                 let mut stmt = conn.prepare(
                     "SELECT title, url, language, last_updated, content FROM pages WHERE language = ?1 AND content LIKE ?2",
                 )?;
+
+                let rows = stmt.query_map(params![&lang, format!("%{}%", q)], |row| {
+                    Ok(Page {
+                      title: row.get(0)?,
+                      url: row.get(1)?,
+                      language: row.get(2)?,
+                      last_updated: row.get(3)?,
+                      content: row.get(4)?,
+                    })
+                  })?;
+
+                  Ok(rows.filter_map(|res| res.ok()).collect()::<Vec<Page>>())
             })
+            .await
         
     }
 }
