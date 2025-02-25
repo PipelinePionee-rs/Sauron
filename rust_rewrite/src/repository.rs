@@ -14,6 +14,18 @@ impl PageRepository {
         let connection = Connection::open(db_path).await?;
         OK(Self {connection})
     }
+
+    async fn search(&self, lang: String, q: String) -> Result<Vec<Page>> {
+        let query_string = format!("%{}%",q);
+
+        self.connection
+            .call(move |conn| {
+                let mut stmt = conn.prepare(
+                    "SELECT title, url, language, last_updated, content FROM pages WHERE language = ?1 AND content LIKE ?2",
+                )?;
+            })
+        
+    }
 }
 
 // TODO: lav 1 asosiated function new() som er en slags construktor den skal nok tage en path til DB filen
