@@ -1,4 +1,3 @@
-use anyhow::Ok;
 //TODO: Lav en pageRepository struckt. Den skal have 1 field som skal være en Connection type læs længere nede
 use tokio_rusqlite::{Connection, Result};
 use rusqlite::params;
@@ -16,7 +15,7 @@ impl PageRepository {
         Ok(Self {connection})
     }
 
-    async fn search(&self, lang: String, q: String) -> Result<Vec<Page>> {
+    pub async fn search(&self, lang: String, q: String) -> Result<Vec<Page>> {
         let query_string = format!("%{}%",q);
 
         self.connection
