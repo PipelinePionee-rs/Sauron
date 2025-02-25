@@ -24,7 +24,7 @@ impl PageRepository {
                     "SELECT title, url, language, last_updated, content FROM pages WHERE language = ?1 AND content LIKE ?2",
                 )?;
 
-                let rows = stmt.query_map(params![&lang, format!("%{}%", q)], |row| {
+                let rows = stmt.query_map(params![&lang, &query_string], |row| {
                     Ok(Page {
                       title: row.get(0)?,
                       url: row.get(1)?,
@@ -34,7 +34,11 @@ impl PageRepository {
                     })
                   })?;
 
-                  Ok(rows.filter_map(|res| res.ok()).collect()::<Vec<Page>>())
+                  let results: Vec<Page> = rows
+                .filter_map(|res| res.map_err(|e| e.into()).ok()) // Convert rusqlite::Error into tokio_rusqlite::Error
+                .collect();
+
+            Ok(results)
             })
             .await
         
