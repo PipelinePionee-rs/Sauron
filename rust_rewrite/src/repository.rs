@@ -1,5 +1,7 @@
 //TODO: Lav en pageRepository struckt. Den skal have 1 field som skal være en Connection type læs længere nede
 use tokio_rusqlite::{Connection, Result};
+use rusqlite::params;
+use crate::models::Page;
 
 struct PageRepository{
     connection: Connection,
