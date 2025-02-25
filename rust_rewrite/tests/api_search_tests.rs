@@ -6,7 +6,7 @@ use axum::{
     response::IntoResponse,
 };
 use hyper::StatusCode;
-use rust_rewrite::api::api_search;
+use rust_rewrite::{api::api_search, repository::PageRepository};
 use rust_rewrite::models::QueryParams;
 use serde_json::Value;
 use tokio_rusqlite::{params, Connection};
@@ -91,14 +91,15 @@ async fn test_api_search_success() {
 #[tokio::test]
 async fn test_api_search_empty_query() {
     // Even though the DB isn’t used when 'q' is empty, we still create one.
-    let db = Arc::new(Connection::open_in_memory().await.unwrap());
+    let db_connection = Connection::open_in_memory().await.unwrap();
+    let repo = Arc::new(PageRepository {connection: db_connection});
 
     let query_params = QueryParams {
         q: Some("    ".to_string()), // q is empty after trimming.
         lang: Some("en".to_string()),
     };
 
-    let response = api_search(State(db.clone()), Query(query_params))
+    let response = api_search(State(repo), Query(query_params))
         .await
         .into_response();
 

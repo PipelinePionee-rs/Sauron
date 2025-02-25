@@ -2,7 +2,7 @@ use tokio_rusqlite::{Connection, params, Result as db_result};
 use crate::models::Page;
 
 pub struct PageRepository{
-    connection: Connection,
+    pub connection: Connection,
 }
 
 
