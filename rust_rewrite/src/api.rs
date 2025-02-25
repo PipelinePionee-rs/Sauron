@@ -38,12 +38,21 @@ lazy_static! {
 
 // squashes all the routes into one function
 // so we can merge them into the main router
-pub fn routes() -> Router<Arc<Connection>> {
+/* pub fn routes() -> Router<Arc<Connection>> {
     Router::new()
         .route("/login", post(api_login))
         .route("/register", post(api_register))
         .route("/logout", get(api_logout))
         .route("/search", get(api_search))
+} */
+
+pub fn routes(db: Arc<Connection>, repo: Arc<PageRepository>) -> Router {
+    Router::new()
+        .route("/login", post(api_login))
+        .route("/register", post(api_register))
+        .route("/logout", get(api_logout))
+        .route("/search", get(api_search).with_state(repo)) // Only `search` uses PageRepository
+        .with_state(db) // Other routes still use Connection
 }
 
 // ---------------------------------------------------
