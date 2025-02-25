@@ -5,7 +5,7 @@ mod models;
 mod api;
 mod auth;
 mod db;
-mod repository;
+pub mod repository;
 
 use std::sync::Arc;
 use api::{api_search, api_login, api_register, api_logout};
@@ -22,7 +22,6 @@ use axum::{
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 use crate::db::create_db_connection;
-use crate::repository;
 
 /// to access the interactive OpenAPI documentation, go to localhost:8080/swagger-ui
 /// to access the OpenAPI JSON, go to localhost:8080/api-doc/openapi.json
