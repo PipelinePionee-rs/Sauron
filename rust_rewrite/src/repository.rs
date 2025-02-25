@@ -45,7 +45,7 @@ impl PageRepository {
     }
 }
 
-// TODO: lav 1 asosiated function new() som er en slags construktor den skal nok tage en path til DB filen
+// TODO: lav 1 assosiated function new() som er en slags construktor den skal nok tage en path til DB filen
     //så du kan lave en connetion. bliver kaldt ved at sige pageRepository::new()
     // TODO: new funtionen skal lave forbindelse til DB så den selv holder styr på sin egen forbindelse. du kan/skal bruge samme logik som
     // Lars burge i DB.rs
