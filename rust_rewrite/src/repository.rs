@@ -1,20 +1,19 @@
-use tokio_rusqlite::{Connection, Result};
-use rusqlite::params;
+use tokio_rusqlite::{Connection, params, Result as db_result};
 use crate::models::Page;
 
-struct PageRepository{
+pub struct PageRepository{
     connection: Connection,
 }
 
 
 impl PageRepository {
-    //Laver sin egen connection, med path som parameter
-    pub async fn new(db_path: &str) -> Result<Self> {
+    //Laver sin egen connection, med path som parameter.
+    pub async fn new(db_path: &str) -> db_result<Self> {
         let connection = Connection::open(db_path).await?;
         Ok(Self {connection})
     }
 
-    pub async fn search(&self, lang: String, q: String) -> Result<Vec<Page>> {
+    pub async fn search(&self, lang: String, q: String) -> db_result<Vec<Page>> {
         let query_string = format!("%{}%",q);
 
         self.connection
@@ -32,12 +31,13 @@ impl PageRepository {
                       content: row.get(4)?,
                     })
                   })?;
+                  let results: Vec<Page> = rows.filter_map(|res| res.ok()).collect();
+                  Ok(results)
+                  
+                  //let results: Vec<Page> = rows
+                //.filter_map(|res| res.map_err(|e| e.into()).ok());
 
-                  let results: Vec<Page> = rows
-                .filter_map(|res| res.map_err(|e| e.into()).ok()) // Convert rusqlite::Error into tokio_rusqlite::Error
-                .collect();
-
-            Ok(results)
+            //Ok(results)
             })
             .await
         
