@@ -15,6 +15,7 @@ use tokio_rusqlite::{params, Connection};
 async fn test_api_search_success() {
     // Create an in-memory database.
     let db = Arc::new(Connection::open_in_memory().await.unwrap());
+    
 
     // Create the 'pages' table.
     let create_table = db
