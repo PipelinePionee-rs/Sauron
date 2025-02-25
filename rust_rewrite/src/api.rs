@@ -21,6 +21,8 @@ use regex::Regex;
 use serde_json::json;
 use tokio_rusqlite::{params, Connection};
 use tower_cookies::{Cookie, Cookies};
+use crate::
+
 
 pub const TOKEN: &str = "auth_token";
 
@@ -75,13 +77,15 @@ pub async fn api_search(
 
     let lang = query.lang.clone().unwrap_or("en".to_string());
 
-    let result = db
+    let repository = 
+
+    /* let result = db
     .call(move |conn| { // .call is async way to execute database operations it takes conn which is self-supplied (it's part of db)  move makes sure q and lang variables stay in scope.
       let mut stmt = conn.prepare(
         "SELECT title, url, language, last_updated, content FROM pages WHERE language = ?1 AND content LIKE ?2"
       )?;
-
-      let rows = stmt.query_map(params![&lang, format!("%{}%", q)], |row| {
+ */
+     /*  let rows = stmt.query_map(params![&lang, format!("%{}%", q)], |row| {
         Ok(Page {
           title: row.get(0)?,
           url: row.get(1)?,
@@ -89,15 +93,15 @@ pub async fn api_search(
           last_updated: row.get(3)?,
           content: row.get(4)?,
         })
-      })?;
+      })?; */
 
       // return results as a vector (like ArrayList in Java)
       // if we wanted to .push or .pop we would have to use a mutable variable
       // like: let mut results = Vec::new();
-      let results: Vec<Page> = rows.filter_map(|res| res.ok()).collect();
+      /* let results: Vec<Page> = rows.filter_map(|res| res.ok()).collect();
       Ok(results)
     })
-    .await;
+    .await; */
 
     match result {
         Ok(data) => Json(json!({ "data": data })).into_response(),
