@@ -8,6 +8,10 @@ struct PageRepository{
 //TODO: Lav en implementation af pageRepository impl
 impl PageRepository {
     //husk public (også i struct)
+    pub async fn new(db_path: &str) -> Result<Self> {
+        let connection = Connection::open(db_path).await?;
+        OK(Self {connection})
+    }
 }
 
 // TODO: lav 1 asosiated function new() som er en slags construktor den skal nok tage en path til DB filen
