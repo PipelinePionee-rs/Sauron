@@ -1,4 +1,3 @@
-//TODO: Lav en pageRepository struckt. Den skal have 1 field som skal være en Connection type læs længere nede
 use tokio_rusqlite::{Connection, Result};
 use rusqlite::params;
 use crate::models::Page;
@@ -7,9 +6,9 @@ struct PageRepository{
     connection: Connection,
 }
 
-//TODO: Lav en implementation af pageRepository impl
+
 impl PageRepository {
-    //husk public (også i struct)
+    //Laver sin egen connection, med path som parameter
     pub async fn new(db_path: &str) -> Result<Self> {
         let connection = Connection::open(db_path).await?;
         Ok(Self {connection})
