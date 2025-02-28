@@ -28,6 +28,8 @@ password-worker = "0.4.0"
 lazy_static = "1.5.0"
 regex = "1.11.1"
 
+reqwest = { version = "0.12", features = ["json"] } # For HTTP requests.
+
 [dev-dependencies]
 anyhow = "1"
 httpc-test = "0.1.0" # for testing HTTP requests
