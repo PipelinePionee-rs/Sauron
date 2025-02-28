@@ -21,6 +21,9 @@ use serde_json::json;
 use tokio_rusqlite::{params, Connection};
 use tower_cookies::{Cookie, Cookies};
 
+use reqwest::Client;
+use serde::Deserialize;
+
 pub const TOKEN: &str = "auth_token";
 
 
@@ -41,6 +44,7 @@ pub fn routes() -> Router<Arc<Connection>> {
         .route("/register", post(api_register))
         .route("/logout", get(api_logout))
         .route("/search", get(api_search))
+        .route("/weather", get(api_weather))
 }
 
 // ---------------------------------------------------
@@ -276,6 +280,100 @@ pub async fn api_logout(State(_db): State<Arc<Connection>>, cookies: Cookies) ->
     // removes auth_token from client
     cookies.remove(Cookie::from(TOKEN));
     Json(res)
+}
+
+// ---------------------------------------------------
+// Weather
+// ---------------------------------------------------
+
+// Allows the JSON response from the weather API to be deserialized into Rust structs.
+
+#[derive(Deserialize)]
+struct WeatherCondition {
+    text: String,
+    icon: String,
+    code: i32,
+}
+
+#[derive(Deserialize)]
+struct Day {
+    maxtemp_c: f64,
+    mintemp_c: f64,
+    avgtemp_c: f64,
+    maxwind_kph: f64,
+    totalprecip_mm: f64,
+    avghumidity: i32,
+    condition: WeatherCondition,
+}
+
+#[derive(Deserialize)]
+struct ForecastDay {
+    date: String,
+    day: Day,
+}
+
+#[derive(Deserialize)]
+struct Forecast {
+    forecastday: Vec<ForecastDay>,
+}
+
+#[derive(Deserialize)]
+struct WeatherResponse {
+    forecast: Forecast,
+}
+
+#[utoipa::path(get,
+  path = "/api/weather", responses(
+   (status = 200, description = "Weather data", body = Data),
+   (status = 401, description = "Invalid credentials", body = ApiErrorResponse),
+  ),
+)]
+pub async fn api_weather() -> impl IntoResponse {
+    println!("->> Weather endpoint hit");
+
+    // Call the weather API.
+    // Currently only fetches for Copenhagen. This can easily be changed, but I'm not sure how it'll interact with the simulation.
+    // The API key is hardcoded, but that's basically a non-issue since it's a free subscription on a dummy account.
+    // If we need more than a million requests per month, we can just add more keys and have it switch if the first one is rejected.
+
+    let client = Client::new();
+    let response = client
+        .get("http://api.weatherapi.com/v1/forecast.json?key=d2f1555420344801b83193615252802&q=Copenhagen&days=5&aqi=no&alerts=no")
+        .send()
+        .await
+        .unwrap()
+        .json::<WeatherResponse>()
+        .await
+        .unwrap();
+
+
+    // Extract the weather data.
+    let forecasts: Vec<String> = response
+        .forecast
+        .forecastday
+        .iter()
+        .map(|day| {
+            format!(
+                "Date: {}, Max Temp: {}°C, Min Temp: {}°C, Avg Temp: {}°C, Max Wind: {} kph, Precipitation: {} mm, Humidity: {}%, Condition: {}",
+                day.date,
+                day.day.maxtemp_c,
+                day.day.mintemp_c,
+                day.day.avgtemp_c,
+                day.day.maxwind_kph,
+                day.day.totalprecip_mm,
+                day.day.avghumidity,
+                day.day.condition.text
+            )
+        })
+        .collect();
+
+    // Return the weather data as a JSON response.
+    let data = Data {
+        data: forecasts.join("\n"),
+    };
+
+    Json(data)
+    
 }
 
 // ---------------------------------------------------
