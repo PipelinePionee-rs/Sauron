@@ -19,7 +19,7 @@ async fn test_api_search_success() {
     
 
     // Create the 'pages' table.
-    let create_table = db
+    let create_table = repo.connection
         .call(|conn| {
             conn.execute(
                 "CREATE TABLE pages (
@@ -37,7 +37,7 @@ async fn test_api_search_success() {
     assert!(create_table.is_ok(), "Failed to create table");
 
     // Insert a test row.
-    let insert = db
+    let insert = repo.connection
         .call(|conn| {
             conn.execute(
                 "INSERT INTO pages (title, url, language, last_updated, content)
