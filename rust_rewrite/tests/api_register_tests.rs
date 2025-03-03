@@ -57,6 +57,20 @@ async fn test_register_success() {
     let body = to_bytes(response.into_body(), 1000).await.unwrap();
     let body: Value = serde_json::from_slice(&body).unwrap();
 
+
+    // Verify the user was actually inserted into the database
+    let user_exists = db
+        .call(|conn| {
+            let mut stmt = conn.prepare("SELECT username FROM users WHERE username = ?1")?;
+            let rows = stmt.query_map(params!["newuser"], |row| row.get::<_, String>(0))?;
+            let results: Vec<String> = rows.filter_map(|r| r.ok()).collect();
+            Ok(results.len() == 1)
+        })
+        .await
+        .unwrap();
+
+    assert!(user_exists, "User was not found in database");
+
     assert_eq!(body, json!({
         "message": "User registered successfully",
         "status_code": 200,

@@ -15,7 +15,6 @@ use axum::{
     Json, Router,
 };
 
-use hyper::StatusCode;
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde_json::json;
@@ -116,7 +115,7 @@ pub async fn api_search(
         Ok(data) => Json(json!({ "data": data })).into_response(),
 
         Err(_err) => {
-            return Error::GenericError.into_response();
+            Error::GenericError.into_response()
         }
     } */
 
@@ -162,11 +161,11 @@ pub async fn api_login(
     let db_password = &db_result.unwrap()[0].1;
 
     // verify password
-    let is_correct = auth::verify_password(&payload.password, &db_password).await?;
+    let is_correct = auth::verify_password(&payload.password, db_password).await?;
 
     println!("->> password match: {:?}", is_correct);
 
-    if is_correct == false {
+    if !is_correct {
         return Err(Error::InvalidCredentials);
     }
 
@@ -273,7 +272,7 @@ pub async fn api_register(
 
         Ok(Json(res).into_response()) // The compiler started throwing a fit over a type mismatch here; hopefully using into_response() fixes that without breaking anything else.
     } else {
-        return Err(Error::InvalidCredentials);
+        Err(Error::InvalidCredentials)
     }
 }
 
@@ -332,3 +331,14 @@ async fn register_dummy() {}
     )
 )]
 async fn login_dummy() {}
+
+#[allow(dead_code)]
+#[utoipa::path(
+    get,
+    path = "/weather",
+    summary = "Serve Weather Page",
+    responses(
+        (status = 200, description = "Successful Response", body = String, content_type = "text/html")
+    )
+)]
+async fn weather_dummy() {}

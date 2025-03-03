@@ -62,7 +62,7 @@ pub fn create_token(username: &str) -> Result<String> {
 // we will check the sub field of the Claims struct to verify the user
 // if the sub(username) exists in the database, then the token is valid
 pub fn decode_token(token: &str) -> Result<Claims> {
-  let token = decode::<Claims>(&token, &DecodingKey::from_secret("secret".as_ref()), &Validation::default())?;
+  let token = decode::<Claims>(token, &DecodingKey::from_secret("secret".as_ref()), &Validation::default())?;
   // returns a Result with the Claims struct
   Ok(token.claims)
 }
