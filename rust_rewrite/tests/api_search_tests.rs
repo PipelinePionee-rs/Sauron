@@ -14,7 +14,8 @@ use tokio_rusqlite::{params, Connection};
 #[tokio::test]
 async fn test_api_search_success() {
     // Create an in-memory database.
-    let db = Arc::new(Connection::open_in_memory().await.unwrap());
+    let db = Connection::open_in_memory().await.unwrap();
+    let repo = Arc::new(PageRepository { connection: db }); // Wrap db in PageRepository
     
 
     // Create the 'pages' table.
@@ -61,7 +62,7 @@ async fn test_api_search_success() {
     };
 
     // Call the handler directly.
-    let response = api_search(State(db.clone()), Query(query_params))
+    let response = api_search(State(repo.clone()), Query(query_params))
         .await
         .into_response();
 
@@ -87,7 +88,8 @@ async fn test_api_search_success() {
         "Test Title",
         "Returned page title does not match"
     );
-}
+} 
+
 
 #[tokio::test]
 async fn test_api_search_empty_query() {
