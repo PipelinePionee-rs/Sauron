@@ -4,7 +4,7 @@ use std::sync::Arc;
 use crate::auth::{self, create_token, hash_password};
 use crate::error::Error;
 use crate::models::{
-    ApiErrorResponse, Data, LoginRequest, LoginResponse, LogoutResponse, Page, QueryParams,
+    ApiErrorResponse, Data, LoginRequest, LoginResponse, LogoutResponse, QueryParams,
     RegisterRequest, RegisterResponse,
 };
 use axum::extract::State;
@@ -20,7 +20,7 @@ use regex::Regex;
 use serde_json::json;
 use tokio_rusqlite::{params, Connection};
 use tower_cookies::{Cookie, Cookies};
-use crate::repository::{self, PageRepository};
+use crate::repository::PageRepository;
 
 
 pub const TOKEN: &str = "auth_token";
