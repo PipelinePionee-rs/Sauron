@@ -22,7 +22,7 @@ use tokio_rusqlite::{params, Connection};
 use tower_cookies::{Cookie, Cookies};
 
 use reqwest::Client;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 pub const TOKEN: &str = "auth_token";
 
@@ -288,14 +288,14 @@ pub async fn api_logout(State(_db): State<Arc<Connection>>, cookies: Cookies) ->
 
 // Allows the JSON response from the weather API to be deserialized into Rust structs.
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 struct WeatherCondition {
     text: String,
     icon: String,
     code: i32,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 struct Day {
     maxtemp_c: f64,
     mintemp_c: f64,
@@ -306,18 +306,18 @@ struct Day {
     condition: WeatherCondition,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 struct ForecastDay {
     date: String,
     day: Day,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 struct Forecast {
     forecastday: Vec<ForecastDay>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 struct WeatherResponse {
     forecast: Forecast,
 }
@@ -346,33 +346,7 @@ pub async fn api_weather() -> impl IntoResponse {
         .await
         .unwrap();
 
-
-    // Extract the weather data.
-    let forecasts: Vec<String> = response
-        .forecast
-        .forecastday
-        .iter()
-        .map(|day| {
-            format!(
-                "Date: {}, Max Temp: {}°C, Min Temp: {}°C, Avg Temp: {}°C, Max Wind: {} kph, Precipitation: {} mm, Humidity: {}%, Condition: {}",
-                day.date,
-                day.day.maxtemp_c,
-                day.day.mintemp_c,
-                day.day.avgtemp_c,
-                day.day.maxwind_kph,
-                day.day.totalprecip_mm,
-                day.day.avghumidity,
-                day.day.condition.text
-            )
-        })
-        .collect();
-
-    // Return the weather data as a JSON response.
-    let data = Data {
-        data: forecasts.join("\n"),
-    };
-
-    Json(data)
+    Json(response)
     
 }
 
