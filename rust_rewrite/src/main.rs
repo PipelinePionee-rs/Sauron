@@ -52,8 +52,8 @@ async fn hello() -> Html<&'static str> {
 
 #[tokio::main]
 async fn main() {
-  // sets server to listen on localhost:8080
-  let listener = TcpListener::bind("localhost:8080").await.unwrap();
+  // sets server to listen on localhost:8084
+  let listener = TcpListener::bind("localhost:8084").await.unwrap();
   println!("->> LISTENING on {:?}\n", listener.local_addr());
 
 
