@@ -4,7 +4,7 @@ use std::sync::Arc;
 use crate::auth::{self, create_token, hash_password};
 use crate::error::Error;
 use crate::models::{
-    ApiErrorResponse, Data, LoginRequest, LoginResponse, LogoutResponse, Page, QueryParams,
+    ApiErrorResponse, Data, LoginRequest, LoginResponse, LogoutResponse, QueryParams,
     RegisterRequest, RegisterResponse,
 };
 use axum::extract::State;
@@ -14,11 +14,14 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde_json::json;
 use tokio_rusqlite::{params, Connection};
 use tower_cookies::{Cookie, Cookies};
+use crate::repository::PageRepository;
+
 
 pub const TOKEN: &str = "auth_token";
 
@@ -34,12 +37,21 @@ lazy_static! {
 
 // squashes all the routes into one function
 // so we can merge them into the main router
-pub fn routes() -> Router<Arc<Connection>> {
+/* pub fn routes() -> Router<Arc<Connection>> {
     Router::new()
         .route("/login", post(api_login))
         .route("/register", post(api_register))
         .route("/logout", get(api_logout))
         .route("/search", get(api_search))
+} */
+
+pub fn routes(db: Arc<Connection>, repo: Arc<PageRepository>) -> Router {
+    Router::new()
+        .route("/login", post(api_login))
+        .route("/register", post(api_register))
+        .route("/logout", get(api_logout))
+        .route("/search", get(api_search).with_state(repo)) // Only `search` uses PageRepository
+        .with_state(db) // Other routes still use Connection
 }
 
 // ---------------------------------------------------
@@ -57,7 +69,7 @@ pub fn routes() -> Router<Arc<Connection>> {
   ),
 )]
 pub async fn api_search(
-    State(db): State<Arc<Connection>>,
+    State(repo): State<Arc<PageRepository>>,
     Query(query): Query<QueryParams>,
 ) -> impl IntoResponse {
     println!(
@@ -73,7 +85,8 @@ pub async fn api_search(
 
     let lang = query.lang.clone().unwrap_or("en".to_string());
 
-    let result = db
+
+    /* let result = db
     .call(move |conn| { // .call is async way to execute database operations it takes conn which is self-supplied (it's part of db)  move makes sure q and lang variables stay in scope.
       let mut stmt = conn.prepare(
         "SELECT title, url, language, last_updated, content FROM pages WHERE language = ?1 AND content LIKE ?2"
@@ -87,12 +100,13 @@ pub async fn api_search(
           last_updated: row.get(3)?,
           content: row.get(4)?,
         })
-      })?;
+      })?; */
+      
 
       // return results as a vector (like ArrayList in Java)
       // if we wanted to .push or .pop we would have to use a mutable variable
       // like: let mut results = Vec::new();
-      let results: Vec<Page> = rows.filter_map(|res| res.ok()).collect();
+      /* let results: Vec<Page> = rows.filter_map(|res| res.ok()).collect();
       Ok(results)
     })
     .await;
@@ -101,8 +115,13 @@ pub async fn api_search(
         Ok(data) => Json(json!({ "data": data })).into_response(),
 
         Err(_err) => {
-            return Error::GenericError.into_response();
+            Error::GenericError.into_response()
         }
+    } */
+
+    match repo.search(lang, q).await {
+        Ok(data) => Json(json!({ "data": data })).into_response(),
+        Err(_err) => Error::GenericError.into_response(),
     }
 }
 
@@ -142,11 +161,11 @@ pub async fn api_login(
     let db_password = &db_result.unwrap()[0].1;
 
     // verify password
-    let is_correct = auth::verify_password(&payload.password, &db_password).await?;
+    let is_correct = auth::verify_password(&payload.password, db_password).await?;
 
     println!("->> password match: {:?}", is_correct);
 
-    if is_correct == false {
+    if !is_correct {
         return Err(Error::InvalidCredentials);
     }
 
@@ -178,6 +197,7 @@ pub async fn api_login(
   path = "/api/register", responses(
    (status = 200, description = "User registered successfully", body = RegisterResponse),
    (status = 401, description = "Invalid credentials", body = ApiErrorResponse),
+   (status = 409, description = "Username already exists", body = ApiErrorResponse),
   ),
    request_body = RegisterRequest,
 )
@@ -208,6 +228,7 @@ pub async fn api_register(
     // if username exists, return error
     if let Ok(true) = res {
         return Err(Error::UsernameExists);
+
     }
 
     // since the username is being "used" twice, we have to clone it,
@@ -249,9 +270,9 @@ pub async fn api_register(
         // add cookie to response
         cookies.add(cookie);
 
-        Ok(Json(res))
+        Ok(Json(res).into_response()) // The compiler started throwing a fit over a type mismatch here; hopefully using into_response() fixes that without breaking anything else.
     } else {
-        return Err(Error::InvalidCredentials);
+        Err(Error::InvalidCredentials)
     }
 }
 
@@ -310,3 +331,14 @@ async fn register_dummy() {}
     )
 )]
 async fn login_dummy() {}
+
+#[allow(dead_code)]
+#[utoipa::path(
+    get,
+    path = "/weather",
+    summary = "Serve Weather Page",
+    responses(
+        (status = 200, description = "Successful Response", body = String, content_type = "text/html")
+    )
+)]
+async fn weather_dummy() {}

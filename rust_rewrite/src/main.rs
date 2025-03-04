@@ -5,6 +5,7 @@ mod models;
 mod api;
 mod auth;
 mod db;
+mod repository;
 
 use std::sync::Arc;
 use api::{api_search, api_login, api_register, api_logout};
@@ -21,6 +22,7 @@ use axum::{
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 use crate::db::create_db_connection;
+use crate::repository::PageRepository;
 
 /// to access the interactive OpenAPI documentation, go to localhost:8080/swagger-ui
 /// to access the OpenAPI JSON, go to localhost:8080/api-doc/openapi.json
@@ -50,8 +52,8 @@ async fn hello() -> Html<&'static str> {
 
 #[tokio::main]
 async fn main() {
-  // sets server to listen on localhost:8080
-  let listener = TcpListener::bind("localhost:8080").await.unwrap();
+  // sets server to listen on localhost:8084
+  let listener = TcpListener::bind("localhost:8084").await.unwrap();
   println!("->> LISTENING on {:?}\n", listener.local_addr());
 
 
@@ -64,10 +66,12 @@ async fn main() {
   let db = Arc::new(db); // to manage shared state
   let open_api_doc = ApiDoc::openapi();
 
+  let repo = Arc::new(PageRepository::new("sauron.db").await.unwrap()); // Create PageRepository
+
 
   let app = Router::new()
     .route("/hello", get(hello))
-    .nest("/api/v1", api::routes().with_state(db.clone())) // merge the routes from api.rs
+    .nest("/api/", api::routes(db.clone(), repo.clone())) // merge the routes from api.rs
     .merge(SwaggerUi::new("/doc/swagger-ui").url("/doc/api-doc/openapi.json", open_api_doc)) // add swagger ui, and openapi doc
     .layer(CookieManagerLayer::new())
     .layer(middleware::map_response(main_response_mapper))
