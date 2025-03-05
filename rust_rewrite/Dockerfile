@@ -6,6 +6,8 @@ COPY . .
 RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS builder
+# Install curl in the builder environment - needed for swagger-ui
+RUN apk add --no-cache curl
 COPY --from=planner /app/recipe.json recipe.json
 # Build dependencies - this is the caching Docker layer!
 RUN cargo chef cook --release --recipe-path recipe.json
