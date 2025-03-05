@@ -13,9 +13,9 @@ COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
 # Build application
 COPY . .
-RUN cargo build --release --bin app
+RUN cargo build --release --bin rust_rewrite
 
 FROM debian:bookworm-slim AS runtime
 WORKDIR /app
-COPY --from=builder /app/target/release/app /usr/local/bin
-ENTRYPOINT ["/usr/local/bin/app"]
+COPY --from=builder /app/target/release/rust_rewrite /usr/local/bin/rust_rewrite
+ENTRYPOINT ["/usr/local/bin/rust_rewrite"]
