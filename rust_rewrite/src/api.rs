@@ -4,7 +4,7 @@ use std::sync::Arc;
 use crate::auth::{self, create_token, hash_password};
 use crate::error::Error;
 use crate::models::{
-    ApiErrorResponse, Data, LoginRequest, LoginResponse, LogoutResponse, Page, QueryParams,
+    ApiErrorResponse, Data, LoginRequest, LoginResponse, LogoutResponse, QueryParams,
     RegisterRequest, RegisterResponse, WeatherResponse,
 };
 use axum::extract::State;
