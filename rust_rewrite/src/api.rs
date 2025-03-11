@@ -5,7 +5,7 @@ use crate::auth::{self, create_token, hash_password};
 use crate::error::Error;
 use crate::models::{
     ApiErrorResponse, Data, LoginRequest, LoginResponse, LogoutResponse, Page, QueryParams,
-    RegisterRequest, RegisterResponse,
+    RegisterRequest, RegisterResponse, WeatherResponse,
 };
 use axum::extract::State;
 use axum::{
@@ -22,7 +22,6 @@ use tokio_rusqlite::{params, Connection};
 use tower_cookies::{Cookie, Cookies};
 
 use reqwest::Client;
-use serde::{Deserialize, Serialize};
 
 pub const TOKEN: &str = "auth_token";
 
@@ -286,46 +285,9 @@ pub async fn api_logout(State(_db): State<Arc<Connection>>, cookies: Cookies) ->
 // Weather
 // ---------------------------------------------------
 
-// Allows the JSON response from the weather API to be deserialized into Rust structs.
-
-#[derive(Deserialize, Serialize)]
-struct WeatherCondition {
-    text: String,
-    icon: String,
-    code: i32,
-}
-
-#[derive(Deserialize, Serialize)]
-struct Day {
-    maxtemp_c: f64,
-    mintemp_c: f64,
-    avgtemp_c: f64,
-    maxwind_kph: f64,
-    totalprecip_mm: f64,
-    avghumidity: i32,
-    condition: WeatherCondition,
-}
-
-#[derive(Deserialize, Serialize)]
-struct ForecastDay {
-    date: String,
-    day: Day,
-}
-
-#[derive(Deserialize, Serialize)]
-struct Forecast {
-    forecastday: Vec<ForecastDay>,
-}
-
-#[derive(Deserialize, Serialize)]
-struct WeatherResponse {
-    forecast: Forecast,
-}
-
 #[utoipa::path(get,
   path = "/api/weather", responses(
    (status = 200, description = "Weather data", body = Data),
-   (status = 401, description = "Invalid credentials", body = ApiErrorResponse),
   ),
 )]
 pub async fn api_weather() -> impl IntoResponse {
@@ -346,6 +308,8 @@ pub async fn api_weather() -> impl IntoResponse {
         .await
         .unwrap();
 
+
+    // Should be wrapped as Data, but that causes the compiler to complain.
     Json(response)
     
 }
