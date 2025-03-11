@@ -20,6 +20,8 @@ use regex::Regex;
 use serde_json::json;
 use tokio_rusqlite::{params, Connection};
 use tower_cookies::{Cookie, Cookies};
+use crate::repository::PageRepository;
+
 
 use reqwest::Client;
 
@@ -37,13 +39,22 @@ lazy_static! {
 
 // squashes all the routes into one function
 // so we can merge them into the main router
-pub fn routes() -> Router<Arc<Connection>> {
+/* pub fn routes() -> Router<Arc<Connection>> {
     Router::new()
         .route("/login", post(api_login))
         .route("/register", post(api_register))
         .route("/logout", get(api_logout))
         .route("/search", get(api_search))
+} */
+
+pub fn routes(db: Arc<Connection>, repo: Arc<PageRepository>) -> Router {
+    Router::new()
+        .route("/login", post(api_login))
+        .route("/register", post(api_register))
+        .route("/logout", get(api_logout))
         .route("/weather", get(api_weather))
+        .route("/search", get(api_search).with_state(repo)) // Only `search` uses PageRepository
+        .with_state(db) // Other routes still use Connection
 }
 
 // ---------------------------------------------------
@@ -61,7 +72,7 @@ pub fn routes() -> Router<Arc<Connection>> {
   ),
 )]
 pub async fn api_search(
-    State(db): State<Arc<Connection>>,
+    State(repo): State<Arc<PageRepository>>,
     Query(query): Query<QueryParams>,
 ) -> impl IntoResponse {
     println!(
@@ -77,7 +88,8 @@ pub async fn api_search(
 
     let lang = query.lang.clone().unwrap_or("en".to_string());
 
-    let result = db
+
+    /* let result = db
     .call(move |conn| { // .call is async way to execute database operations it takes conn which is self-supplied (it's part of db)  move makes sure q and lang variables stay in scope.
       let mut stmt = conn.prepare(
         "SELECT title, url, language, last_updated, content FROM pages WHERE language = ?1 AND content LIKE ?2"
@@ -91,12 +103,13 @@ pub async fn api_search(
           last_updated: row.get(3)?,
           content: row.get(4)?,
         })
-      })?;
+      })?; */
+      
 
       // return results as a vector (like ArrayList in Java)
       // if we wanted to .push or .pop we would have to use a mutable variable
       // like: let mut results = Vec::new();
-      let results: Vec<Page> = rows.filter_map(|res| res.ok()).collect();
+      /* let results: Vec<Page> = rows.filter_map(|res| res.ok()).collect();
       Ok(results)
     })
     .await;
@@ -107,6 +120,11 @@ pub async fn api_search(
         Err(_err) => {
             Error::GenericError.into_response()
         }
+    } */
+
+    match repo.search(lang, q).await {
+        Ok(data) => Json(json!({ "data": data })).into_response(),
+        Err(_err) => Error::GenericError.into_response(),
     }
 }
 

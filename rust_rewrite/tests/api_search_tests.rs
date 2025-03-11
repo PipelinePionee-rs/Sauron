@@ -6,7 +6,7 @@ use axum::{
     response::IntoResponse,
 };
 use hyper::StatusCode;
-use rust_rewrite::api::api_search;
+use rust_rewrite::{api::api_search, repository::PageRepository};
 use rust_rewrite::models::QueryParams;
 use serde_json::Value;
 use tokio_rusqlite::{params, Connection};
@@ -14,10 +14,12 @@ use tokio_rusqlite::{params, Connection};
 #[tokio::test]
 async fn test_api_search_success() {
     // Create an in-memory database.
-    let db = Arc::new(Connection::open_in_memory().await.unwrap());
+    let db = Connection::open_in_memory().await.unwrap();
+    let repo = Arc::new(PageRepository { connection: db }); // Wrap db in PageRepository
+    
 
     // Create the 'pages' table.
-    let create_table = db
+    let create_table = repo.connection
         .call(|conn| {
             conn.execute(
                 "CREATE TABLE pages (
@@ -35,7 +37,7 @@ async fn test_api_search_success() {
     assert!(create_table.is_ok(), "Failed to create table");
 
     // Insert a test row.
-    let insert = db
+    let insert = repo.connection
         .call(|conn| {
             conn.execute(
                 "INSERT INTO pages (title, url, language, last_updated, content)
@@ -60,7 +62,7 @@ async fn test_api_search_success() {
     };
 
     // Call the handler directly.
-    let response = api_search(State(db.clone()), Query(query_params))
+    let response = api_search(State(repo.clone()), Query(query_params))
         .await
         .into_response();
 
@@ -86,19 +88,21 @@ async fn test_api_search_success() {
         "Test Title",
         "Returned page title does not match"
     );
-}
+} 
+
 
 #[tokio::test]
 async fn test_api_search_empty_query() {
     // Even though the DB isn’t used when 'q' is empty, we still create one.
-    let db = Arc::new(Connection::open_in_memory().await.unwrap());
+    let db_connection = Connection::open_in_memory().await.unwrap();
+    let repo = Arc::new(PageRepository {connection: db_connection});
 
     let query_params = QueryParams {
         q: Some("    ".to_string()), // q is empty after trimming.
         lang: Some("en".to_string()),
     };
 
-    let response = api_search(State(db.clone()), Query(query_params))
+    let response = api_search(State(repo), Query(query_params))
         .await
         .into_response();
 
@@ -113,14 +117,15 @@ async fn test_api_search_empty_query() {
 #[tokio::test]
 async fn test_api_search_db_error() {
     // Create an in-memory database but do NOT create the 'pages' table.
-    let db = Arc::new(Connection::open_in_memory().await.unwrap());
+    let db_connection = Connection::open_in_memory().await.unwrap();
+    let repo = Arc::new(PageRepository {connection: db_connection});
 
     let query_params = QueryParams {
         q: Some("test".to_string()),
         lang: Some("en".to_string()),
     };
 
-    let response = api_search(State(db.clone()), Query(query_params))
+    let response = api_search(State(repo), Query(query_params))
         .await
         .into_response();
 
