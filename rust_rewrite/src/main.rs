@@ -59,6 +59,7 @@ async fn main() {
 
   async fn main_response_mapper(res: Response) -> Response {
     println!();
+    println!("{:?}", res);
     res
   }
 

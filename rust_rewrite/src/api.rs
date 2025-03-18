@@ -15,18 +15,16 @@ use axum::{
     Json, Router,
 };
 
+use crate::repository::PageRepository;
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde_json::json;
 use tokio_rusqlite::{params, Connection};
 use tower_cookies::{Cookie, Cookies};
-use crate::repository::PageRepository;
-
 
 use reqwest::Client;
 
 pub const TOKEN: &str = "auth_token";
-
 
 // god i hate regex
 // i hope chatgpt wrote this correctly
@@ -88,7 +86,6 @@ pub async fn api_search(
 
     let lang = query.lang.clone().unwrap_or("en".to_string());
 
-
     /* let result = db
     .call(move |conn| { // .call is async way to execute database operations it takes conn which is self-supplied (it's part of db)  move makes sure q and lang variables stay in scope.
       let mut stmt = conn.prepare(
@@ -104,12 +101,11 @@ pub async fn api_search(
           content: row.get(4)?,
         })
       })?; */
-      
 
-      // return results as a vector (like ArrayList in Java)
-      // if we wanted to .push or .pop we would have to use a mutable variable
-      // like: let mut results = Vec::new();
-      /* let results: Vec<Page> = rows.filter_map(|res| res.ok()).collect();
+    // return results as a vector (like ArrayList in Java)
+    // if we wanted to .push or .pop we would have to use a mutable variable
+    // like: let mut results = Vec::new();
+    /* let results: Vec<Page> = rows.filter_map(|res| res.ok()).collect();
       Ok(results)
     })
     .await;
@@ -172,18 +168,17 @@ pub async fn api_login(
         return Err(Error::InvalidCredentials);
     }
 
-
-  // create token, using function in auth.rs
-  // it returns a Result<String>, so we unwrap it
-  let token = create_token(&payload.username).unwrap();
-  // build cookie with token
-  let cookie = Cookie::build((TOKEN, token))
-    .http_only(true)
-    .secure(true)
-    .path("/")
-    .build();
-  // add cookie to response
-  cookies.add(cookie);
+    // create token, using function in auth.rs
+    // it returns a Result<String>, so we unwrap it
+    let token = create_token(&payload.username).unwrap();
+    // build cookie with token
+    let cookie = Cookie::build((TOKEN, token))
+        .http_only(true)
+        .secure(true)
+        .path("/")
+        .build();
+    // add cookie to response
+    cookies.add(cookie);
 
     let res = LoginResponse {
         message: "Login successful".to_string(),
@@ -212,10 +207,22 @@ pub async fn api_register(
 ) -> impl IntoResponse {
     println!("->> Register endpoint hit with payload: {:?}", payload);
 
+    // Log the registration attempt with username
+    println!(
+        "[REGISTER] Registration attempt for user: {}",
+        payload.username
+    );
+
     // Validate email format
     if !EMAIL_REGEX.is_match(&payload.email.to_lowercase()) {
+        println!("[REGISTER] Invalid email format: {}", payload.email);
         return Err(Error::InvalidCredentials);
     }
+
+    println!(
+        "[REGISTER] Email validation passed for user: {}",
+        payload.username
+    );
 
     let username = payload.username.clone();
 
@@ -224,15 +231,22 @@ pub async fn api_register(
         .call(move |conn| {
             let mut stmt = conn.prepare("SELECT username FROM users WHERE username = ?1")?;
             let mut rows = stmt.query(params![username])?;
-            Ok(rows.next()?.is_some())
+            let exists = rows.next()?.is_some();
+            println!("->> Username exists check: {:?}", exists);
+            Ok(exists)
         })
         .await;
 
     // if username exists, return error
     if let Ok(true) = res {
+        println!("[REGISTER] Username already exists: {}", payload.username);
         return Err(Error::UsernameExists);
-
     }
+
+    println!(
+        "[REGISTER] Username check passed, username is available: {}",
+        payload.username
+    );
 
     // since the username is being "used" twice, we have to clone it,
     // else the first usage in the db function will consume it.
@@ -242,21 +256,49 @@ pub async fn api_register(
     let username_token = payload.username.clone();
 
     // hash password
-    let hashed_password = hash_password(&payload.password).await?;
+    println!("[REGISTER] Hashing password for user: {}", payload.username);
+    let hashed_password = match hash_password(&payload.password).await {
+        Ok(hashed) => {
+            println!("[REGISTER] Password hashing successful");
+            hashed
+        }
+        Err(e) => {
+            println!("[REGISTER] Password hashing failed: {:?}", e);
+            return Err(e);
+        }
+    };
 
     // insert payload into db
+    println!(
+        "[REGISTER] Attempting database insertion for user: {}",
+        payload.username
+    );
     let res = db
         .call(move |conn| {
             conn.execute(
                 "INSERT INTO users (username, email, password) VALUES (?1, ?2, ?3)",
                 params![&payload.username, &payload.email, &hashed_password], // note we insert hashed password
             )
-            .map_err(tokio_rusqlite::Error::from) // we have to convert the error type, else rust will complain
+            .map_err(|e| {
+                println!("[REGISTER] Database insertion error: {:?}", e);
+                tokio_rusqlite::Error::from(e) // we have to convert the error type, else rust will complain
+            })
         })
-        .await?;
+        .await;
+
+    // Handle database insertion errors
+    if let Err(e) = &res {
+        println!("[REGISTER] Database operation failed: {:?}", e);
+        return Err(Error::GenericError);
+    }
 
     // sql returns number of affected rows, so we check if it's 1
-    if res == 1 {
+    let affected_rows = res?;
+    if affected_rows == 1 {
+        println!(
+            "[REGISTER] User registered successfully: {}",
+            username_token
+        );
         let res = RegisterResponse {
             message: "User registered successfully".to_string(),
             status_code: 200,
@@ -264,7 +306,21 @@ pub async fn api_register(
 
         // create token, using function in auth.rs
         // it returns a Result<String>, so we unwrap it
-        let token = create_token(&username_token).unwrap();
+        println!(
+            "[REGISTER] Creating auth token for user: {}",
+            username_token
+        );
+        let token = match create_token(&username_token) {
+            Ok(token) => {
+                println!("[REGISTER] Token created successfully");
+                token
+            }
+            Err(e) => {
+                println!("[REGISTER] Token creation failed: {:?}", e);
+                return Err(Error::GenericError);
+            }
+        };
+
         // build cookie with token
         let cookie = Cookie::build((TOKEN, token))
             .http_only(true)
@@ -272,9 +328,15 @@ pub async fn api_register(
             .build();
         // add cookie to response
         cookies.add(cookie);
+        println!("[REGISTER] Auth cookie added to response");
 
+        println!(
+            "[REGISTER] Registration complete for user: {}",
+            username_token
+        );
         Ok(Json(res).into_response()) // The compiler started throwing a fit over a type mismatch here; hopefully using into_response() fixes that without breaking anything else.
     } else {
+        println!("[REGISTER] Database insertion did not affect any rows");
         Err(Error::InvalidCredentials)
     }
 }
@@ -326,10 +388,8 @@ pub async fn api_weather() -> impl IntoResponse {
         .await
         .unwrap();
 
-
     // Should be wrapped as Data, but that causes the compiler to complain.
     Json(response)
-    
 }
 
 // ---------------------------------------------------
