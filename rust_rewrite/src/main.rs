@@ -8,7 +8,7 @@ mod db;
 mod repository;
 
 use std::sync::Arc;
-use api::{api_search, api_login, api_register, api_logout};
+use api::{api_search, api_login, api_register, api_logout, api_weather};
 use tower_cookies::{CookieManager, CookieManagerLayer};
 use tower_http::cors::{CorsLayer, Any};
 
@@ -32,7 +32,7 @@ use crate::repository::PageRepository;
 // so if we want to add more paths, we just do #[openapi(paths(path1, path2, path3))]
 #[derive(OpenApi)] // this attribute derives the OpenApi impl for the struct
 #[openapi(
-  paths(hello, api::api_search, api::api_login, api::api_register, api::api_logout, api::root_dummy, api::register_dummy, api::login_dummy)
+  paths(hello, api::api_search, api::api_login, api::api_register, api::api_logout, api::api_weather, api::root_dummy, api::register_dummy, api::login_dummy)
 )] // this attribute specifies the paths that will be documented
 // structs are like classes in Java, but without methods
 struct ApiDoc; // this is the struct that will be used to generate the OpenAPI documentation

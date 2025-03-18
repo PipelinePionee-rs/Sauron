@@ -5,7 +5,7 @@ use crate::auth::{self, create_token, hash_password};
 use crate::error::Error;
 use crate::models::{
     ApiErrorResponse, Data, LoginRequest, LoginResponse, LogoutResponse, QueryParams,
-    RegisterRequest, RegisterResponse,
+    RegisterRequest, RegisterResponse, WeatherResponse,
 };
 use axum::extract::State;
 use axum::{
@@ -22,6 +22,8 @@ use tokio_rusqlite::{params, Connection};
 use tower_cookies::{Cookie, Cookies};
 use crate::repository::PageRepository;
 
+
+use reqwest::Client;
 
 pub const TOKEN: &str = "auth_token";
 
@@ -50,6 +52,7 @@ pub fn routes(db: Arc<Connection>, repo: Arc<PageRepository>) -> Router {
         .route("/login", post(api_login))
         .route("/register", post(api_register))
         .route("/logout", get(api_logout))
+        .route("/weather", get(api_weather))
         .route("/search", get(api_search).with_state(repo)) // Only `search` uses PageRepository
         .with_state(db) // Other routes still use Connection
 }
@@ -294,6 +297,39 @@ pub async fn api_logout(State(_db): State<Arc<Connection>>, cookies: Cookies) ->
     // removes auth_token from client
     cookies.remove(Cookie::from(TOKEN));
     Json(res)
+}
+
+// ---------------------------------------------------
+// Weather
+// ---------------------------------------------------
+
+#[utoipa::path(get,
+  path = "/api/weather", responses(
+   (status = 200, description = "Weather data", body = Data),
+  ),
+)]
+pub async fn api_weather() -> impl IntoResponse {
+    println!("->> Weather endpoint hit");
+
+    // Call the weather API.
+    // Currently only fetches for Copenhagen. This can easily be changed, but I'm not sure how it'll interact with the simulation.
+    // The API key is hardcoded, but that's basically a non-issue since it's a free subscription on a dummy account.
+    // If we need more than a million requests per month, we can just add more keys and have it switch if the first one is rejected.
+
+    let client = Client::new();
+    let response = client
+        .get("http://api.weatherapi.com/v1/forecast.json?key=d2f1555420344801b83193615252802&q=Copenhagen&days=5&aqi=no&alerts=no")
+        .send()
+        .await
+        .unwrap()
+        .json::<WeatherResponse>()
+        .await
+        .unwrap();
+
+
+    // Should be wrapped as Data, but that causes the compiler to complain.
+    Json(response)
+    
 }
 
 // ---------------------------------------------------

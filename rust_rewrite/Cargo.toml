@@ -19,7 +19,7 @@ tower-cookies = "0.11.0"
 jsonwebtoken = "9" # JWT library
 
 serde = "1.0.217" # serialization library
-utoipa-swagger-ui = { version = "9.0.0", features = ["axum"] }
+utoipa-swagger-ui = { version = "9.0.0", features = ["axum", "reqwest"] }
 
 # tokio-rusqlite = "0.6.0" # async SQLite
 tokio-rusqlite = { version = "0.6", features = ["bundled"] }
@@ -28,6 +28,7 @@ password-worker = "0.4.0"
 lazy_static = "1.5.0"
 regex = "1.11.1"
 
+reqwest = { version = "0.12", features = ["json"] } # For HTTP requests.
 
 [dev-dependencies]
 anyhow = "1"
