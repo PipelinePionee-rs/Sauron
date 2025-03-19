@@ -218,19 +218,20 @@ pub async fn api_register(
     }
 
     let username = payload.username.clone();
+    let email = payload.email.clone();
 
     // check if username already exists
     let res = db
         .call(move |conn| {
-            let mut stmt = conn.prepare("SELECT username FROM users WHERE username = ?1")?;
-            let mut rows = stmt.query(params![username])?;
+            let mut stmt = conn.prepare("SELECT 1 FROM users WHERE username = ?1 OR email = ?2")?;
+            let mut rows = stmt.query(params![username, email])?;
             Ok(rows.next()?.is_some())
         })
         .await;
 
     // if username exists, return error
     if let Ok(true) = res {
-        return Err(Error::UsernameExists);
+        return Err(Error::UsernameOrEmailExists);
 
     }
 

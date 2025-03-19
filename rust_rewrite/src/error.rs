@@ -10,7 +10,7 @@ pub type Result<T> = core::result::Result<T, Error>;
 pub enum Error {
   LoginFail,
   InvalidCredentials,
-  UsernameExists,
+  UsernameOrEmailExists,
   HashError(Box<dyn StdError + Send + Sync + 'static>),
   GenericError,
   UnprocessableEntity
@@ -45,10 +45,10 @@ impl IntoResponse for Error {
         "Internal Server Error", 
         "Internal Server Error"
       ),
-      Error::UsernameExists => (
+      Error::UsernameOrEmailExists => (
         StatusCode::CONFLICT,
-        "Username already exists",
-        "Username already exists. please try a different username."
+        "Username or email is already in use",
+        "Username or email is already in use. Please try a different email or username."
       ),
     };
 
