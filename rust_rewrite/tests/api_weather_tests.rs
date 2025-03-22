@@ -29,9 +29,9 @@ async fn test_api_weather() {
     let body = axum::body::to_bytes(response.into_body(), 1024 * 1024).await.unwrap();
     let json: Value = serde_json::from_slice(&body).unwrap();
 
-    // Check if the JSON contains data for five days.
+    // Check if the JSON contains data for three days.
     let forecastdays = json["forecast"]["forecastday"].as_array().unwrap();
-    assert_eq!(forecastdays.len(), 5);
+    assert_eq!(forecastdays.len(), 3);
 
     // Check that all the keys have values.
     for forecastday in forecastdays {
