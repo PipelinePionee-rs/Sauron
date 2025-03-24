@@ -40,7 +40,7 @@ struct ApiDoc; // this is the struct that will be used to generate the OpenAPI d
 #[tokio::main]
 async fn main() {
   // sets server to listen on localhost:8084
-  let listener = TcpListener::bind("localhost:8084").await.unwrap();
+  let listener = TcpListener::bind("0.0.0.0:8084").await.unwrap();
   println!("->> LISTENING on {:?}\n", listener.local_addr());
 
 
