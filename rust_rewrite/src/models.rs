@@ -66,3 +66,39 @@ pub struct LogoutResponse {
     pub status_code: i32,
     pub message: String,
 }
+
+// Allows the JSON response from the weather API to be deserialized into Rust structs.
+
+#[derive(Deserialize, Serialize)]
+pub struct WeatherCondition {
+    text: String,
+    icon: String,
+    code: i32,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct Day {
+    maxtemp_c: f64,
+    mintemp_c: f64,
+    avgtemp_c: f64,
+    maxwind_kph: f64,
+    totalprecip_mm: f64,
+    avghumidity: i32,
+    condition: WeatherCondition,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct ForecastDay {
+    date: String,
+    day: Day,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct Forecast {
+    forecastday: Vec<ForecastDay>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct WeatherResponse {
+    forecast: Forecast,
+}
