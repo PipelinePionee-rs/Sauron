@@ -15,7 +15,6 @@ use axum::{
     Json, Router,
 };
 
-
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde_json::json;
