@@ -1,11 +1,10 @@
 name: Smoke Test
 
 on:
-  workflow_run:
-    workflows:
-      - "Rust"  # This listens for the completion of the Rust workflow
-    types:
-      - completed
+  push:
+    branches: [ "dev" ]
+  pull_request:
+    branches: [ "dev" ]
 
 permissions:
   actions: read
@@ -13,7 +12,6 @@ permissions:
 jobs:
   smoke-test:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - uses: actions/checkout@v4
