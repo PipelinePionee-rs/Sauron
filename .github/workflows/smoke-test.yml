@@ -2,7 +2,7 @@ name: Smoke Test
 
 on:
   workflow_run:
-    workflows: ["Rust"]
+    workflows: "Rust"
     types:
       - completed
 
