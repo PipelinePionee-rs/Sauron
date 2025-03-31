@@ -57,9 +57,9 @@
                     document.getElementById('error-message').textContent = errorData.error;
                     document.getElementById('error').style.display = 'block';
                 } else {
-                    // Redirect to login page; should also show a message that registration was successful.
+                    // Redirect to Home page; should also show a message that registration was successful.
                     // Potential nice to have: automatically fill in the login form on redirect.
-                    window.location.href = '/login';
+                    window.location.href = '/';
                 }
             } catch (error) {
                 console.error('Error:', error);
