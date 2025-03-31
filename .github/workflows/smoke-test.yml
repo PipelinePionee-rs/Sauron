@@ -2,10 +2,13 @@ name: Smoke Test
 
 on:
   workflow_run:
-    workflows: "Rust"
-    branches: "dev"
+    workflows: 
+      - "Rust"
     types:
       - completed
+
+permissions:
+  actions: read
 
 jobs:
   smoke-test:
