@@ -258,23 +258,19 @@ pub async fn api_register(
 
     // sql returns number of affected rows, so we check if it's 1
     if res == 1 {
-        let res = RegisterResponse {
-            message: "User registered successfully".to_string(),
-            status_code: 200,
-        };
+      // create token, using function in auth.rs
+      // it returns a Result<String>, so we unwrap it
+      let token = create_token(&username_token).unwrap();
+      // build cookie with token
+      let cookie = Cookie::build((TOKEN, token))
+        .http_only(true)
+        .secure(true)
+        .build();
+      // add cookie to response
+      cookies.add(cookie);
 
-        // create token, using function in auth.rs
-        // it returns a Result<String>, so we unwrap it
-        let token = create_token(&username_token).unwrap();
-        // build cookie with token
-        let cookie = Cookie::build((TOKEN, token))
-            .http_only(true)
-            .secure(true)
-            .build();
-        // add cookie to response
-        cookies.add(cookie);
-
-        Ok(Json(res).into_response()) // The compiler started throwing a fit over a type mismatch here; hopefully using into_response() fixes that without breaking anything else.
+      // Redirect to "/"
+      Ok(axum::response::Redirect::to("/").into_response())
     } else {
         Err(Error::InvalidCredentials)
     }
