@@ -25,7 +25,3 @@ jobs:
       run: |
            cd rust_rewrite/ 
            cargo test --verbose
-
-  smoke-test:
-    needs: build  # Ensures Rust completes first
-    uses: ./.github/workflows/smoke_test.yml # Calls Smoke Test workflow

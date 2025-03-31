@@ -1,7 +1,11 @@
 name: Smoke Test
 
 on:
-  workflow_call:
+  workflow_run:
+    workflows:
+      - "Rust"  # This listens for the completion of the Rust workflow
+    types:
+      - completed
 
 permissions:
   actions: read
