@@ -4,8 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+zip = "=2.4.2"
+
 utoipa = "5.3.1" # for generating OpenApi specs
 utoipa-axum = "0.2" # extension for working with axum
+
 
 axum = "0.8.1" # web framework
 axum-macros = "0.5.0" # macros for axum duh
