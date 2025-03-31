@@ -1,6 +1,10 @@
 on: push
 name: Code Quality Checks
 
+permissions:
+  contents: read
+  security-events: write
+
 env:
   RUSTFLAGS: "-Dwarnings"
 
