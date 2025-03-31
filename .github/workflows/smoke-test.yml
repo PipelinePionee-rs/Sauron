@@ -1,0 +1,52 @@
+name: Smoke Test
+
+on:
+  workflow_run:
+    workflows: ["Rust"]
+    types:
+      - completed
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and start container
+        run: |
+          cd rust_rewrite
+          docker build -t sauron-api .
+          docker run -d -p 8084:8084 --name sauron-container sauron-api
+
+      - name: Wait for application to start
+        run: |
+          sleep 60  # Give the application time to start
+
+      - name: Test Search endpoint
+        run: |
+          SEARCH_STATUS=$(curl -o /dev/null -s -w "%{http_code}\n" "http://localhost:3000/api/search?q=test")
+          if [ $SEARCH_STATUS -eq 200 ]; then
+            echo "Search endpoint test passed"
+          else
+            echo "Search endpoint test failed with status $SEARCH_STATUS"
+            exit 1
+          fi
+
+      - name: Test Login endpoint
+        run: |
+          LOGIN_STATUS=$(curl -X POST -H "Content-Type: application/json" \
+            -d '{"username":"admin","password":"password"}' \
+            -o /dev/null -s -w "%{http_code}\n" \
+            http://localhost:3000/api/login)
+          if [ $LOGIN_STATUS -eq 200 ]; then
+            echo "Login endpoint test passed"
+          else
+            echo "Login endpoint test failed with status $LOGIN_STATUS"
+            exit 1
+          fi
+
+      - name: Cleanup
+        if: always()
+        run: docker rm -f sauron-container
