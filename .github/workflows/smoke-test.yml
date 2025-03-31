@@ -3,6 +3,7 @@ name: Smoke Test
 on:
   workflow_run:
     workflows: "Rust"
+    branches: "dev"
     types:
       - completed
 
