@@ -19,7 +19,7 @@ jobs:
       - name: Build and start container
         run: |
           cd rust_rewrite
-          docker build -t sauron-api .
+          docker build --no-cache -t sauron-api .
           docker run -d -p 8084:8084 --name sauron-container sauron-api
 
       - name: Wait for application to start
