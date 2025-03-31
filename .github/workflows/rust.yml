@@ -5,6 +5,7 @@ on:
     branches: [ "dev" ]
   pull_request:
     branches: [ "dev" ]
+  workflow_call:
 
 env:
   CARGO_TERM_COLOR: always
@@ -24,3 +25,7 @@ jobs:
       run: |
            cd rust_rewrite/ 
            cargo test --verbose
+
+  smoke-test:
+    needs: build  # Ensures Rust completes first
+    uses: ./.github/workflows/smoke_test.yml # Calls Smoke Test workflow

@@ -1,11 +1,7 @@
 name: Smoke Test
 
 on:
-  workflow_run:
-    workflows: 
-      - "Rust"
-    types:
-      - completed
+  workflow_call:
 
 permissions:
   actions: read
