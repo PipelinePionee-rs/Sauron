@@ -8,7 +8,8 @@ use crate::models::{
     RegisterRequest, RegisterResponse, WeatherResponse,
 };
 use axum::extract::State;
-use axum::routing::MethodRouter;
+use axum::http::HeaderMap;
+use axum::body::Bytes;
 use axum::{
     extract::Query,
     response::IntoResponse,
@@ -16,7 +17,9 @@ use axum::{
     Json, Router,
 };
 
+use hyper::StatusCode;
 use lazy_static::lazy_static;
+use serde_urlencoded;
 use regex::Regex;
 use serde_json::json;
 use tokio_rusqlite::{params, Connection};
@@ -25,8 +28,6 @@ use crate::repository::PageRepository;
 
 
 use reqwest::Client;
-
-use axum::extract::Form;
 
 pub const TOKEN: &str = "auth_token";
 
@@ -53,7 +54,7 @@ lazy_static! {
 pub fn routes(db: Arc<Connection>, repo: Arc<PageRepository>) -> Router {
     Router::new()
         .route("/login", post(api_login))
-        .route("/register", MethodRouter::new().post(api_register_json).post(api_register_form))
+        .route("/register", post(api_register))
         .route("/logout", get(api_logout))
         .route("/weather", get(api_weather))
         .route("/search", get(api_search).with_state(repo)) // Only `search` uses PageRepository
@@ -203,25 +204,6 @@ pub async fn api_login(
     post,
     path = "/api/register",
     request_body(content = RegisterRequest, content_type = "application/json"),
-    responses(
-        (status = 200, description = "User registered successfully", body = RegisterResponse),
-        (status = 401, description = "Invalid credentials", body = ApiErrorResponse),
-        (status = 409, description = "Username already exists", body = ApiErrorResponse),
-    )
-)]
-
-// Handler for requests with JSON body.
-pub async fn api_register_json(
-    db: State<Arc<Connection>>,
-    cookies: Cookies,
-    Json(payload): Json<RegisterRequest>,
-) -> impl IntoResponse {
-    api_register(db, cookies, payload).await
-}
-
-#[utoipa::path(
-    post,
-    path = "/api/register",
     request_body(content = RegisterRequest, content_type = "application/x-www-form-urlencoded"),
     responses(
         (status = 200, description = "User registered successfully", body = RegisterResponse),
@@ -230,19 +212,37 @@ pub async fn api_register_json(
     )
 )]
 
-// Handler for requests with url-encoded form body.
-pub async fn api_register_form(
-    db: State<Arc<Connection>>,
-    cookies: Cookies,
-    Form(payload): Form<RegisterRequest>,
-) -> impl IntoResponse {
-    api_register(db, cookies, payload).await
-}
-
 pub async fn api_register(
     db: State<Arc<Connection>>,
     cookies: Cookies,
-    payload: RegisterRequest, // Request body extracted by the helper methods above.
+    headers: HeaderMap,
+    body: Bytes,
+) -> impl IntoResponse {
+    // Check the content-type header to see if it's JSON or url-encoded form data.
+    if let Some(content_type) = headers.get("Content-Type") {
+        if content_type == "application/json" {
+            // Parse the body as JSON.
+            match serde_json::from_slice::<RegisterRequest>(&body) {
+                Ok(payload) => return api_register_logic(db, cookies, payload).await.into_response(),
+                Err(_) => return (StatusCode::BAD_REQUEST, "Invalid request body (parsed as JSON)").into_response(),
+            }
+        } else if content_type == "application/x-www-form-urlencoded" {
+            // Parse the body as url-encoded form data.
+            match serde_urlencoded::from_bytes::<RegisterRequest>(&body) {
+                Ok(payload) => return api_register_logic(db, cookies, payload).await.into_response(),
+                Err(_) => return (StatusCode::BAD_REQUEST, "Invalid request body (parsed as url-encoded)").into_response(),
+            }
+        }
+    }
+
+    // If the content type isn't either of the above, return an error.
+    ((StatusCode::BAD_REQUEST, Json(json!({ "error": "Invalid Content-Type" })))).into_response()
+}
+
+pub async fn api_register_logic(
+    db: State<Arc<Connection>>,
+    cookies: Cookies,
+    payload: RegisterRequest, // Request body extracted by the helper method above.
 ) -> impl IntoResponse {
     println!("->> Register endpoint hit with payload: {:?}", payload);
 
