@@ -109,8 +109,8 @@ pub async fn api_change_password(
     }
 
     let token = token.unwrap();
-    println!("->> Found token: {:?}", token);
-
+    let masked_token = format!("{}...{}", &token[..4], &token[token.len()-4..]);
+    println!("->> Found token: {:?}", masked_token);
     // Decode token to get username
     let claims = match auth::decode_token(&token) {
         Ok(claims) => {
