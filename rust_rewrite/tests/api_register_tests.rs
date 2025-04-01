@@ -4,7 +4,7 @@ use std::sync::Arc;
 use axum::{
     body::to_bytes,
     extract::State,
-    response::IntoResponse, Json,
+    response::IntoResponse,
 };
 use hyper::StatusCode;
 use rust_rewrite::{api::api_register, models::RegisterRequest};
@@ -47,7 +47,7 @@ async fn test_register_success() {
     let response = api_register(
         State(db.clone()),
         cookies,
-        Json(register_request),
+        register_request,
     )
     .await
     .into_response();
@@ -108,7 +108,7 @@ async fn test_register_invalid_email() {
 
     let cookies = Cookies::default();
 
-    let response = api_register(State(db.clone()), cookies, Json(register_request))
+    let response = api_register(State(db.clone()), cookies, register_request)
         .await
         .into_response();
 
@@ -159,7 +159,7 @@ async fn test_register_username_exists() {
 
     let cookies = Cookies::default();
 
-    let response = api_register(State(db.clone()), cookies, Json(register_request))
+    let response = api_register(State(db.clone()), cookies, register_request)
         .await
         .into_response();
 
@@ -209,9 +209,47 @@ async fn test_register_email_exists() {
 
     let cookies = Cookies::default();
 
-    let response = api_register(State(db.clone()), cookies, Json(register_request))
+    let response = api_register(State(db.clone()), cookies, register_request)
         .await
         .into_response();
 
     assert_eq!(response.status(), StatusCode::CONFLICT);
+}
+
+#[tokio::test]
+async fn test_register_url_encoded() {
+    let db = Arc::new(Connection::open_in_memory().await.unwrap());
+
+    // Create the users table
+    let create_table = db
+        .call(|conn| {
+            conn.execute(
+                "CREATE TABLE users (
+                    username TEXT,
+                    email TEXT,
+                    password TEXT
+                )",
+                [],
+
+            )
+            .map_err(|err| err.into())
+        })
+        .await;
+
+    assert!(create_table.is_ok(), "Failed to create table");
+
+    let register_request = RegisterRequest {
+        username: "testuser".to_string(),
+        email: "test@example.com".to_string(),
+        password: "password123".to_string(),
+    };
+
+    let cookies = Cookies::default();
+
+    let form_request = axum::extract::Form(register_request).0;
+    let response = api_register(State(db.clone()), cookies, form_request)
+        .await
+        .into_response();
+
+    assert_eq!(response.status(), StatusCode::OK);
 }
