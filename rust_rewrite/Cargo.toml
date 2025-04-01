@@ -32,6 +32,7 @@ lazy_static = "1.5.0"
 regex = "1.11.1"
 
 reqwest = { version = "0.12", features = ["json"] } # For HTTP requests.
+chrono = "0.4" # needed for setting expiration time for JWT
 
 [dev-dependencies]
 anyhow = "1"
