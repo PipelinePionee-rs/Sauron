@@ -24,11 +24,11 @@ jobs:
 
       - name: Wait for application to start
         run: |
-          sleep 60  # Give the application time to start
+          sleep 10  # Give the application time to start
 
       - name: Test Search endpoint
         run: |
-          SEARCH_STATUS=$(curl -o /dev/null -s -w "%{http_code}\n" "http://localhost:3000/api/search?q=test")
+          SEARCH_STATUS=$(curl -o /dev/null -s -w "%{http_code}\n" "http://localhost:8084/api/search?q=test")
           if [ $SEARCH_STATUS -eq 200 ]; then
             echo "Search endpoint test passed"
           else
@@ -39,9 +39,9 @@ jobs:
       - name: Test Login endpoint
         run: |
           LOGIN_STATUS=$(curl -X POST -H "Content-Type: application/json" \
-            -d '{"username":"admin","password":"password"}' \
+            -d '{"username":"smoketest","password":"test"}' \
             -o /dev/null -s -w "%{http_code}\n" \
-            http://localhost:3000/api/login)
+            http://localhost:8084/api/login)
           if [ $LOGIN_STATUS -eq 200 ]; then
             echo "Login endpoint test passed"
           else
