@@ -8,6 +8,7 @@ use crate::models::{
     RegisterRequest, RegisterResponse, WeatherResponse,
 };
 use axum::extract::State;
+use axum::routing::MethodRouter;
 use axum::{
     extract::Query,
     response::IntoResponse,
@@ -24,6 +25,8 @@ use crate::repository::PageRepository;
 
 
 use reqwest::Client;
+
+use axum::extract::Form;
 
 pub const TOKEN: &str = "auth_token";
 
@@ -50,7 +53,7 @@ lazy_static! {
 pub fn routes(db: Arc<Connection>, repo: Arc<PageRepository>) -> Router {
     Router::new()
         .route("/login", post(api_login))
-        .route("/register", post(api_register))
+        .route("/register", MethodRouter::new().post(api_register_json).post(api_register_form))
         .route("/logout", get(api_logout))
         .route("/weather", get(api_weather))
         .route("/search", get(api_search).with_state(repo)) // Only `search` uses PageRepository
@@ -196,19 +199,50 @@ pub async fn api_login(
 // ---------------------------------------------------
 // Register
 // ---------------------------------------------------
-#[utoipa::path(post,
-  path = "/api/register", responses(
-   (status = 200, description = "User registered successfully", body = RegisterResponse),
-   (status = 401, description = "Invalid credentials", body = ApiErrorResponse),
-   (status = 409, description = "Username already exists", body = ApiErrorResponse),
-  ),
-   request_body = RegisterRequest,
-)
-]
+#[utoipa::path(
+    post,
+    path = "/api/register",
+    request_body(content = RegisterRequest, content_type = "application/json"),
+    responses(
+        (status = 200, description = "User registered successfully", body = RegisterResponse),
+        (status = 401, description = "Invalid credentials", body = ApiErrorResponse),
+        (status = 409, description = "Username already exists", body = ApiErrorResponse),
+    )
+)]
+
+// Handler for requests with JSON body.
+pub async fn api_register_json(
+    db: State<Arc<Connection>>,
+    cookies: Cookies,
+    Json(payload): Json<RegisterRequest>,
+) -> impl IntoResponse {
+    api_register(db, cookies, payload).await
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/register",
+    request_body(content = RegisterRequest, content_type = "application/x-www-form-urlencoded"),
+    responses(
+        (status = 200, description = "User registered successfully", body = RegisterResponse),
+        (status = 401, description = "Invalid credentials", body = ApiErrorResponse),
+        (status = 409, description = "Username already exists", body = ApiErrorResponse),
+    )
+)]
+
+// Handler for requests with url-encoded form body.
+pub async fn api_register_form(
+    db: State<Arc<Connection>>,
+    cookies: Cookies,
+    Form(payload): Form<RegisterRequest>,
+) -> impl IntoResponse {
+    api_register(db, cookies, payload).await
+}
+
 pub async fn api_register(
     db: State<Arc<Connection>>,
     cookies: Cookies,
-    payload: Json<RegisterRequest>,
+    payload: RegisterRequest, // Request body extracted by the helper methods above.
 ) -> impl IntoResponse {
     println!("->> Register endpoint hit with payload: {:?}", payload);
 
