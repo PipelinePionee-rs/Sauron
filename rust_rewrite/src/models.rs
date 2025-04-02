@@ -36,7 +36,7 @@ pub struct LoginResponse {
     pub message: String,
 }
 
-#[derive(Deserialize, ToSchema, Debug)]
+#[derive(Deserialize, ToSchema, Debug, Serialize)]
 pub struct RegisterRequest {
     pub username: String,
     pub email: String,
