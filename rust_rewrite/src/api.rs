@@ -15,18 +15,16 @@ use axum::{
     Json, Router,
 };
 
+use crate::repository::PageRepository;
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde_json::json;
 use tokio_rusqlite::{params, Connection};
 use tower_cookies::{Cookie, Cookies};
-use crate::repository::PageRepository;
-
 
 use reqwest::Client;
 
 pub const TOKEN: &str = "auth_token";
-
 
 // god i hate regex
 // i hope chatgpt wrote this correctly
@@ -88,7 +86,6 @@ pub async fn api_search(
 
     let lang = query.lang.clone().unwrap_or("en".to_string());
 
-
     /* let result = db
     .call(move |conn| { // .call is async way to execute database operations it takes conn which is self-supplied (it's part of db)  move makes sure q and lang variables stay in scope.
       let mut stmt = conn.prepare(
@@ -104,12 +101,11 @@ pub async fn api_search(
           content: row.get(4)?,
         })
       })?; */
-      
 
-      // return results as a vector (like ArrayList in Java)
-      // if we wanted to .push or .pop we would have to use a mutable variable
-      // like: let mut results = Vec::new();
-      /* let results: Vec<Page> = rows.filter_map(|res| res.ok()).collect();
+    // return results as a vector (like ArrayList in Java)
+    // if we wanted to .push or .pop we would have to use a mutable variable
+    // like: let mut results = Vec::new();
+    /* let results: Vec<Page> = rows.filter_map(|res| res.ok()).collect();
       Ok(results)
     })
     .await;
@@ -172,18 +168,17 @@ pub async fn api_login(
         return Err(Error::InvalidCredentials);
     }
 
-
-  // create token, using function in auth.rs
-  // it returns a Result<String>, so we unwrap it
-  let token = create_token(&payload.username).unwrap();
-  // build cookie with token
-  let cookie = Cookie::build((TOKEN, token))
-    .http_only(true)
-    .secure(true)
-    .path("/")
-    .build();
-  // add cookie to response
-  cookies.add(cookie);
+    // create token, using function in auth.rs
+    // it returns a Result<String>, so we unwrap it
+    let token = create_token(&payload.username).unwrap();
+    // build cookie with token
+    let cookie = Cookie::build((TOKEN, token))
+        .http_only(true)
+        .secure(true)
+        .path("/")
+        .build();
+    // add cookie to response
+    cookies.add(cookie);
 
     let res = LoginResponse {
         message: "Login successful".to_string(),
@@ -232,7 +227,6 @@ pub async fn api_register(
     // if username exists, return error
     if let Ok(true) = res {
         return Err(Error::UsernameOrEmailExists);
-
     }
 
     // since the username is being "used" twice, we have to clone it,
@@ -258,19 +252,19 @@ pub async fn api_register(
 
     // sql returns number of affected rows, so we check if it's 1
     if res == 1 {
-      // create token, using function in auth.rs
-      // it returns a Result<String>, so we unwrap it
-      let token = create_token(&username_token).unwrap();
-      // build cookie with token
-      let cookie = Cookie::build((TOKEN, token))
-        .http_only(true)
-        .secure(true)
-        .build();
-      // add cookie to response
-      cookies.add(cookie);
+        // create token, using function in auth.rs
+        // it returns a Result<String>, so we unwrap it
+        let token = create_token(&username_token).unwrap();
+        // build cookie with token
+        let cookie = Cookie::build((TOKEN, token))
+            .http_only(true)
+            .secure(true)
+            .build();
+        // add cookie to response
+        cookies.add(cookie);
 
-      // Redirect to "/"
-      Ok(axum::response::Redirect::to("/").into_response())
+        // Redirect to "/"
+        Ok(axum::response::Redirect::to("/").into_response())
     } else {
         Err(Error::InvalidCredentials)
     }
@@ -323,10 +317,8 @@ pub async fn api_weather() -> impl IntoResponse {
         .await
         .unwrap();
 
-
     // Should be wrapped as Data, but that causes the compiler to complain.
     Json(response)
-    
 }
 
 // ---------------------------------------------------

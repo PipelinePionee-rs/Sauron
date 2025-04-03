@@ -1,20 +1,13 @@
 use std::sync::Arc;
 
-
-use axum::{
-    body::to_bytes,
-    extract::State,
-    response::IntoResponse, Json,
-};
+use axum::{extract::State, response::IntoResponse, Json};
 use hyper::StatusCode;
 use rust_rewrite::{api::api_register, models::RegisterRequest};
-use serde_json::{json, Value};
 use tokio_rusqlite::{params, Connection};
 use tower_cookies::Cookies;
 
 #[tokio::test]
 async fn test_register_success() {
-
     // Create an in-memory database.
     let db = Arc::new(Connection::open_in_memory().await.unwrap());
 
@@ -44,19 +37,11 @@ async fn test_register_success() {
     let cookies = Cookies::default();
 
     // Call the API function.
-    let response = api_register(
-        State(db.clone()),
-        cookies,
-        Json(register_request),
-    )
-    .await
-    .into_response();
+    let response = api_register(State(db.clone()), cookies, Json(register_request))
+        .await
+        .into_response();
 
-    assert_eq!(response.status(), StatusCode::OK);
-
-    let body = to_bytes(response.into_body(), 1000).await.unwrap();
-    let body: Value = serde_json::from_slice(&body).unwrap();
-
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
 
     // Verify the user was actually inserted into the database
     let user_exists = db
@@ -71,12 +56,7 @@ async fn test_register_success() {
 
     assert!(user_exists, "User was not found in database");
 
-    assert_eq!(body, json!({
-        "message": "User registered successfully",
-        "status_code": 200,
-    }));
 }
-
 
 #[tokio::test]
 async fn test_register_invalid_email() {
@@ -99,7 +79,6 @@ async fn test_register_invalid_email() {
         .await;
     assert!(create_table.is_ok(), "Failed to create table");
 
-
     let register_request = RegisterRequest {
         username: "newuser".to_string(),
         email: "invalid-email".to_string(), // Invalid email format
@@ -114,8 +93,7 @@ async fn test_register_invalid_email() {
 
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
-          
-          
+
 #[tokio::test]
 async fn test_register_username_exists() {
     let db = Arc::new(Connection::open_in_memory().await.unwrap());
@@ -130,7 +108,6 @@ async fn test_register_username_exists() {
                     password TEXT
                 )",
                 [],
-
             )
             .map_err(|err| err.into())
         })
@@ -180,7 +157,6 @@ async fn test_register_email_exists() {
                     password TEXT
                 )",
                 [],
-
             )
             .map_err(|err| err.into())
         })
