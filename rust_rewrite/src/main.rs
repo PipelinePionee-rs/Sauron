@@ -53,7 +53,7 @@ async fn main() {
   let db = Arc::new(db); // to manage shared state
   let open_api_doc = ApiDoc::openapi();
 
-  let repo = Arc::new(PageRepository::new("/app/data/sauron.db").await.unwrap()); // Create PageRepository
+  let repo = Arc::new(PageRepository::new("data/sauron.db").await.unwrap()); // Create PageRepository
 
 
   let app = Router::new()
