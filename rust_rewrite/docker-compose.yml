@@ -1,0 +1,17 @@
+services:
+  api:
+    container_name: sauron
+    image: saurondev/sauron:latest
+    build: .
+    ports:
+      - "8084:8084"
+    restart: unless-stopped
+    environment:
+      - RUST_LOG=debug
+    networks:
+      - sauron-network
+
+networks:
+  sauron-network:
+    driver: bridge
+
