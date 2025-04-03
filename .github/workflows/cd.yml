@@ -68,12 +68,12 @@ jobs:
 
       - name: Copy docker-compose.yml to server
         run: |
-          scp ./rust_rewrite/docker-compose.yml ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}:/sauron_docker
+          scp ./rust_rewrite/docker-compose.yml ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}:~/sauron_docker
   
       - name: Deploy to Server
         run: |
           ssh ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }} '
-            cd /sauron_docker
+            cd ~/sauron_docker
             docker compose pull
-            docker compose up -d 
+            docker compose up -d
           '
