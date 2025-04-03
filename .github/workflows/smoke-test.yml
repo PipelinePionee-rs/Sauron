@@ -27,9 +27,16 @@ jobs:
           cd rust_rewrite
           docker buildx build --platform linux/amd64 --load -t sauron-api .
 
+      - name: Prepare database directory
+        run: |
+          mkdir -p rust_rewrite/data
+          touch rust_rewrite/data/sauron.db
+  
       - name: Start container
         run: |
-          docker run -d -p 8084:8084 --env DATABASE_URL=":memory:" --name sauron-container sauron-api
+          docker run -d -p 8084:8084 \
+            -v $(pwd)/rust_rewrite/data:/app/data \
+            --name sauron-container sauron-api
 
       - name: Wait for application to start
         run: |
