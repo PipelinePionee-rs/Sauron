@@ -102,3 +102,14 @@ pub struct Forecast {
 pub struct WeatherResponse {
     forecast: Forecast,
 }
+
+#[derive(Deserialize, Serialize, Debug, ToSchema)]
+pub struct ChangePasswordRequest {
+    pub new_password: String,
+}
+
+#[derive(Serialize, ToSchema, Debug)]
+pub struct ChangePasswordResponse {
+    pub status_code: i32,
+    pub message: String,
+}

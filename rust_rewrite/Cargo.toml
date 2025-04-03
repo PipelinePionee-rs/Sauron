@@ -4,9 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+
+# this should fix docker build issues
+openssl = { version = "0.10", features = ["vendored"]}
+
 zip = "=2.4.2"
+
 utoipa = "5.3.1" # for generating OpenApi specs
 utoipa-axum = "0.2" # extension for working with axum
+
 
 axum = "0.8.1" # web framework
 axum-macros = "0.5.0" # macros for axum duh
@@ -31,6 +37,7 @@ lazy_static = "1.5.0"
 regex = "1.11.1"
 
 reqwest = { version = "0.12", features = ["json"] } # For HTTP requests.
+chrono = "0.4" # needed for setting expiration time for JWT
 
 [dev-dependencies]
 anyhow = "1"

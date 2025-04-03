@@ -1,0 +1,65 @@
+name: Smoke Test
+
+on:
+  push:
+    branches: [ "dev" ]
+  pull_request:
+    branches: [ "dev" ]
+
+permissions:
+  actions: read
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and start container
+        run: |
+          cd rust_rewrite
+          docker build --no-cache -t sauron-api .
+          docker run -d -p 8084:8084 --name sauron-container sauron-api
+
+      - name: Wait for application to start
+        run: |
+          sleep 10  # Give the application time to start
+
+      - name: Test api/logout endpoint
+        run: |
+          SEARCH_STATUS=$(curl -o /dev/null -s -w "%{http_code}\n" "http://localhost:8084/api/logout")
+          if [ $SEARCH_STATUS -eq 200 ]; then
+            echo "Logout endpoint test passed"
+          else
+            echo "Logout endpoint test failed with status $SEARCH_STATUS"
+            exit 1
+          fi
+
+      # ADD THIS BACK WHEN DATABASE IS ADDED TO DOCKERFILE PLS
+      # - name: Test Search endpoint
+      #   run: |
+      #     SEARCH_STATUS=$(curl -o /dev/null -s -w "%{http_code}\n" "http://localhost:8084/api/search?q=test")
+      #     if [ $SEARCH_STATUS -eq 200 ]; then
+      #       echo "Search endpoint test passed"
+      #     else
+      #       echo "Search endpoint test failed with status $SEARCH_STATUS"
+      #       exit 1
+      #     fi
+
+      # - name: Test Login endpoint
+      #   run: |
+      #     LOGIN_STATUS=$(curl -X POST -H "Content-Type: application/json" \
+      #       -d '{"username":"smoketest","password":"test"}' \
+      #       -o /dev/null -s -w "%{http_code}\n" \
+      #       http://localhost:8084/api/login)
+      #     if [ $LOGIN_STATUS -eq 200 ]; then
+      #       echo "Login endpoint test passed"
+      #     else
+      #       echo "Login endpoint test failed with status $LOGIN_STATUS"
+      #       exit 1
+      #     fi
+
+      - name: Cleanup
+        if: always()
+        run: docker rm -f sauron-container
