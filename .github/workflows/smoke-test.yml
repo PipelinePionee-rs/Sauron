@@ -25,7 +25,7 @@ jobs:
       - name: Build container
         run: |
           cd rust_rewrite
-          docker buildx build --platform linux/amd64 -t sauron-api .
+          docker buildx build --platform linux/amd64 --load -t sauron-api .
 
       - name: Start container
         run: |
