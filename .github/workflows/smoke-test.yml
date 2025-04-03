@@ -31,18 +31,31 @@ jobs:
         run: |
           docker run -d -p 8084:8084 --name sauron-container sauron-api
 
-      - name: Wait for application to start
-        run: |
-          for i in {1..30}; do
-            if curl -s http://localhost:8084/api/logout > /dev/null; then
-              echo "Application is ready"
-              exit 0
-            fi
-            echo "Waiting for application to start... ($i/30)"
-            sleep 2
-          done
-          echo "Application failed to start within 60 seconds"
-          exit 1
+          - name: Wait for application to start
+          run: |
+            echo "Checking container status..."
+            docker ps -a
+            
+            echo "Container logs:"
+            docker logs sauron-container
+            
+            echo "Starting health check..."
+            for i in {1..30}; do
+              if curl -s http://localhost:8084/api/logout > /dev/null; then
+                echo "Application is ready"
+                exit 0
+              fi
+              echo "Waiting for application to start... ($i/30)"
+              if [ $i -eq 1 ] || [ $((i % 5)) -eq 0 ]; then
+                echo "Latest container logs:"
+                docker logs --tail 20 sauron-container
+              fi
+              sleep 2
+            done
+            echo "Application failed to start within 60 seconds"
+            echo "Final container logs:"
+            docker logs sauron-container
+            exit 1
 
       - name: Test api/logout endpoint
         run: |
