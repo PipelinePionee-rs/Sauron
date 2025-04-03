@@ -236,7 +236,7 @@ pub async fn api_register(
     }
 
     // If the content type isn't either of the above, return an error.
-    ((StatusCode::BAD_REQUEST, Json(json!({ "error": "Invalid Content-Type" })))).into_response()
+    (StatusCode::BAD_REQUEST, Json(json!({ "error": "Invalid Content-Type" }))).into_response()
 }
 
 pub async fn api_register_logic(
