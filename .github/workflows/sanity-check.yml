@@ -1,0 +1,51 @@
+name: Sanity Check
+
+on:
+  push:
+    branches: ["main", "sanity-test"]
+  pull_request:
+    branches: ["main"]
+  # workflow_run:
+  #   workflows: ["Continous Deployment"]
+  #   types:
+  #     - completed
+
+jobs:
+  sanity-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test Search endpoint
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X GET "https://sauron.tolana.dev/api/search?q=test")
+          status_code=$(echo "$response" | tail -n1)
+          if [ "$status_code" != "200" ]; then
+            echo "Search endpoint failed with status code: $status_code"
+            exit 1
+          fi
+
+      - name: Test Register endpoint
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X POST "https://sauron.tolana.dev/api/register" -H "Content-Type: application/json" -d '{"username": "sanity", "email": "sanity@test.com", "password": "sanity"}')
+          status_code=$(echo "$response" | tail -n1)
+          if [ "$status_code" != "200" ]; then
+            echo "Register endpoint failed with status code: $status_code"
+            exit 1
+          fi
+
+      - name: Test Login endpoint
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X POST "https://sauron.tolana.dev/api/login" -H "Content-Type: application/json" -d '{"username": "sanity", "password": "sanity"}')
+          status_code=$(echo "$response" | tail -n1)
+          if [ "$status_code" != "200" ]; then
+            echo "Login endpoint failed with status code: $status_code"
+            exit 1
+          fi
+
+      - name: Test Logout endpoint
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X POST "https://sauron.tolana.dev/api/logout")
+          status_code=$(echo "$response" | tail -n1)
+          if [ "$status_code" != "200" ]; then
+            echo "Logout endpoint failed with status code: $status_code"
+            exit 1
+          fi
