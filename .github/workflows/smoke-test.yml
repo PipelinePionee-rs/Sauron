@@ -2,9 +2,9 @@ name: Smoke Test
 
 on:
   push:
-    branches: [ "dev" ]
+    branches: ["dev"]
   pull_request:
-    branches: [ "dev" ]
+    branches: ["dev"]
 
 permissions:
   actions: read
@@ -16,15 +16,53 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build and start container
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build container
         run: |
           cd rust_rewrite
-          docker build --no-cache -t sauron-api .
-          docker run -d -p 8084:8084 --name sauron-container sauron-api
+          docker buildx build --platform linux/amd64 --load -t sauron-api .
+
+      - name: Prepare database directory
+        run: |
+          mkdir -p rust_rewrite/data
+          touch rust_rewrite/data/sauron.db
+  
+      - name: Start container
+        run: |
+          docker run -d -p 8084:8084 \
+            -v $(pwd)/rust_rewrite/data:/app/data \
+            --name sauron-container sauron-api
 
       - name: Wait for application to start
         run: |
-          sleep 10  # Give the application time to start
+          echo "Checking container status..."
+          docker ps -a
+            
+          echo "Container logs:"
+          docker logs sauron-container
+            
+          echo "Starting health check..."
+          for i in {1..30}; do
+            if curl -s http://localhost:8084/api/logout > /dev/null; then
+              echo "Application is ready"
+              exit 0
+            fi
+            echo "Waiting for application to start... ($i/30)"
+            if [ $i -eq 1 ] || [ $((i % 5)) -eq 0 ]; then
+              echo "Latest container logs:"
+              docker logs --tail 20 sauron-container
+            fi
+            sleep 2
+          done
+          echo "Application failed to start within 60 seconds"
+          echo "Final container logs:"
+          docker logs sauron-container
+          exit 1
 
       - name: Test api/logout endpoint
         run: |
@@ -36,7 +74,6 @@ jobs:
             exit 1
           fi
 
-      # ADD THIS BACK WHEN DATABASE IS ADDED TO DOCKERFILE PLS
       # - name: Test Search endpoint
       #   run: |
       #     SEARCH_STATUS=$(curl -o /dev/null -s -w "%{http_code}\n" "http://localhost:8084/api/search?q=test")
