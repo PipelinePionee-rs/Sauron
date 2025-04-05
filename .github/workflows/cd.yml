@@ -59,13 +59,6 @@ jobs:
       - name: Checkout the code
         uses: actions/checkout@v4
 
-      # - name: Install SSH key
-      #   uses: shimataro/ssh-key-action@v2
-      #   with:
-      #     known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
-      #     key: ${{ secrets.SSH_KEY }}
-      #     if_key_exists: fail # replace / ignore / fail
-
       - name: Install SSH key
         run: |
           mkdir -p ~/.ssh
@@ -78,9 +71,14 @@ jobs:
         run: |
           scp ./rust_rewrite/docker-compose.yml ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}:~/sauron_docker
 
+      # We need to temporarily change the ownership of the static files to the www-data user
+      # because the static files are owned by the root user
+      # and we need to change the ownership back to the www-data user after the files are copied
       - name: Copy static files to server
         run: |
+          ssh ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }} 'sudo chown -R $USER:$USER /var/www/sauron'
           scp -r ./rust_rewrite/static/* ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}:/var/www/sauron/
+          ssh ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }} 'sudo chown -R www-data:www-data /var/www/sauron'
   
       - name: Deploy to Server
         run: |
