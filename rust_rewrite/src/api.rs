@@ -61,52 +61,26 @@ pub fn routes(db: Arc<Connection>, repo: Arc<PageRepository>) -> Router {
   ),
 )]
 pub async fn api_search(
-    State(repo): State<Arc<PageRepository>>,
-    Query(query): Query<QueryParams>,
+  State(repo): State<Arc<PageRepository>>,
+  Query(query): Query<QueryParams>,
 ) -> impl IntoResponse {
-    println!(
-        "->> Search endpoint hit with query: {:?} and lang: {:?}",
-        query.q, query.lang
-    );
-    // accepts 'q' and 'lang' query parameters
-    let q = query.q.clone().unwrap_or_default();
+  println!(
+      "->> Search endpoint hit with query: {:?} and lang: {:?}",
+      query.q, query.lang
+  );
+  // accepts 'q' and 'lang' query parameters
+  let q = query.q.clone().unwrap_or_default();
 
-    if q.trim().is_empty() {
-        return Error::UnprocessableEntity.into_response();
-    }
+  if q.trim().is_empty() {
+      return Error::UnprocessableEntity.into_response();
+  }
 
-    let lang = query.lang.clone().unwrap_or("en".to_string());
+  let lang = query.lang.clone().unwrap_or("en".to_string());
 
-    let result = db
-    .call(move |conn| { // .call is async way to execute database operations it takes conn which is self-supplied (it's part of db)  move makes sure q and lang variables stay in scope.
-      let mut stmt = conn.prepare(
-        "SELECT title, url, language, last_updated, content FROM pages WHERE language = ?1 AND content LIKE ?2"
-      )?;
-
-      let rows = stmt.query_map(params![&lang, format!("%{}%", q)], |row| {
-        Ok(Page {
-          title: row.get(0)?,
-          url: row.get(1)?,
-          language: row.get(2)?,
-          last_updated: row.get(3)?,
-          content: row.get(4)?,
-        })
-      })?; 
-
-    // return results as a vector (like ArrayList in Java)
-    // if we wanted to .push or .pop we would have to use a mutable variable
-    // like: let mut results = Vec::new();
-     let results: Vec<Page> = rows.filter_map(|res| res.ok()).collect();
-      Ok(results)
-    })
-    .await;
-
-    match result {
-        Ok(data) => Json(json!({ "data": data })).into_response(),
-    match repo.search(lang, q).await {
-        Ok(data) => Json(json!({ "data": data })).into_response(),
-        Err(_err) => Error::GenericError.into_response(),
-    }
+  match repo.search(lang, q).await {
+      Ok(data) => Json(json!({ "data": data })).into_response(),
+      Err(_err) => Error::GenericError.into_response(),
+  }
 }
 
 // ---------------------------------------------------
