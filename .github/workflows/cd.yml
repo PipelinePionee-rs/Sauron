@@ -2,9 +2,9 @@ name: Continous Deployment
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "cd-workflow" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "cd-workflow" ]
 
 jobs:
 
@@ -59,12 +59,20 @@ jobs:
       - name: Checkout the code
         uses: actions/checkout@v4
 
+      # - name: Install SSH key
+      #   uses: shimataro/ssh-key-action@v2
+      #   with:
+      #     known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+      #     key: ${{ secrets.SSH_KEY }}
+      #     if_key_exists: fail # replace / ignore / fail
+
       - name: Install SSH key
-        uses: shimataro/ssh-key-action@v2
-        with:
-          known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
-          key: ${{ secrets.SSH_KEY }}
-          if_key_exists: fail # replace / ignore / fail
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
 
       - name: Copy docker-compose.yml to server
         run: |
