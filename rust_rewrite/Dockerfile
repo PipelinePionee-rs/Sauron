@@ -10,6 +10,7 @@ RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS builder
 # Install curl in the builder environment - needed for swagger-ui
+# hadolint ignore=DL3018
 RUN apk add --no-cache \
     curl \
     make \
