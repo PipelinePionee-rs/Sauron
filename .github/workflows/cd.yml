@@ -2,9 +2,9 @@ name: Continous Deployment
 
 on:
   push:
-    branches: [ "main", "cd-workflow" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "main", "cd-workflow" ]
+    branches: [ "main" ]
 
 jobs:
 
