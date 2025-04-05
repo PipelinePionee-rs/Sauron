@@ -77,6 +77,10 @@ jobs:
       - name: Copy docker-compose.yml to server
         run: |
           scp ./rust_rewrite/docker-compose.yml ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}:~/sauron_docker
+
+      - name: Copy static files to server
+        run: |
+          scp -r ./rust_rewrite/static/* ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}:/var/www/sauron/
   
       - name: Deploy to Server
         run: |
