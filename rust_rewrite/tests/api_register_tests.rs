@@ -4,7 +4,9 @@ use std::sync::Arc;
 use axum::{
     body::to_bytes,
     extract::State,
-    response::IntoResponse, Json,
+    response::IntoResponse,
+    http::HeaderMap,
+    body::Bytes,
 };
 use hyper::StatusCode;
 use rust_rewrite::{api::api_register, models::RegisterRequest};
@@ -40,6 +42,11 @@ async fn test_register_success() {
         password: "password123".to_string(),
     };
 
+    // Create a dummy header and body for the request.
+    let mut headers = HeaderMap::new();
+    headers.insert("Content-Type", "application/json".parse().unwrap());
+    let body = Bytes::from(serde_json::to_string(&register_request).unwrap());
+
     // Create dummy cookies.
     let cookies = Cookies::default();
 
@@ -47,7 +54,8 @@ async fn test_register_success() {
     let response = api_register(
         State(db.clone()),
         cookies,
-        Json(register_request),
+        headers,
+        body,
     )
     .await
     .into_response();
@@ -108,7 +116,12 @@ async fn test_register_invalid_email() {
 
     let cookies = Cookies::default();
 
-    let response = api_register(State(db.clone()), cookies, Json(register_request))
+    // Create a dummy header and body for the request.
+    let mut headers = HeaderMap::new();
+    headers.insert("Content-Type", "application/json".parse().unwrap());
+    let body = Bytes::from(serde_json::to_string(&register_request).unwrap());
+
+    let response = api_register(State(db.clone()), cookies, headers, body)
         .await
         .into_response();
 
@@ -157,9 +170,14 @@ async fn test_register_username_exists() {
         password: "password123".to_string(),
     };
 
+    // Create a dummy header and body for the request.
+    let mut headers = HeaderMap::new();
+    headers.insert("Content-Type", "application/json".parse().unwrap());
+    let body = Bytes::from(serde_json::to_string(&register_request).unwrap());
+
     let cookies = Cookies::default();
 
-    let response = api_register(State(db.clone()), cookies, Json(register_request))
+    let response = api_register(State(db.clone()), cookies, headers, body)
         .await
         .into_response();
 
@@ -209,9 +227,63 @@ async fn test_register_email_exists() {
 
     let cookies = Cookies::default();
 
-    let response = api_register(State(db.clone()), cookies, Json(register_request))
+    // Create a dummy header and body for the request.
+    let mut headers = HeaderMap::new();
+    headers.insert("Content-Type", "application/json".parse().unwrap());
+    let body = Bytes::from(serde_json::to_string(&register_request).unwrap());
+
+    let response = api_register(State(db.clone()), cookies, headers, body)
         .await
         .into_response();
 
     assert_eq!(response.status(), StatusCode::CONFLICT);
+}
+
+#[tokio::test]
+async fn test_register_url_encoded() {
+    let db = Arc::new(Connection::open_in_memory().await.unwrap());
+
+    // Create the users table
+    let create_table = db
+        .call(|conn| {
+            conn.execute(
+                "CREATE TABLE users (
+                    username TEXT,
+                    email TEXT,
+                    password TEXT
+                )",
+                [],
+
+            )
+            .map_err(|err| err.into())
+        })
+        .await;
+
+    assert!(create_table.is_ok(), "Failed to create table");
+
+    let register_request = RegisterRequest {
+        username: "testuser".to_string(),
+        email: "test@example.com".to_string(),
+        password: "password123".to_string(),
+    };
+
+    // Create a dummy header for the request.
+    let mut headers = HeaderMap::new();
+    headers.insert("Content-Type", "application/x-www-form-urlencoded".parse().unwrap());
+
+    // Create the body as a url-encoded string.
+    let body = Bytes::from(format!(
+        "username={}&email={}&password={}",
+        register_request.username,
+        register_request.email,
+        register_request.password
+    ));
+
+    let cookies = Cookies::default();
+
+    let response = api_register(State(db.clone()), cookies, headers, body)
+        .await
+        .into_response();
+
+    assert_eq!(response.status(), StatusCode::OK);
 }
