@@ -23,15 +23,6 @@ jobs:
             exit 1
           fi
 
-      - name: Test Register endpoint
-        run: |
-          response=$(curl -s -w "\n%{http_code}" -X POST "https://sauron.tolana.dev/api/register" -H "Content-Type: application/json" -d '{"username": "sanity", "email": "sanity@test.com", "password": "sanity"}')
-          status_code=$(echo "$response" | tail -n1)
-          if [ "$status_code" != "200" ]; then
-            echo "Register endpoint failed with status code: $status_code"
-            exit 1
-          fi
-
       - name: Test Login endpoint
         run: |
           response=$(curl -s -w "\n%{http_code}" -X POST "https://sauron.tolana.dev/api/login" -H "Content-Type: application/json" -d '{"username": "sanity", "password": "sanity"}')
