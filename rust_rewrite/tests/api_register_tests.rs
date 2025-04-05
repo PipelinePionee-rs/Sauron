@@ -1,13 +1,8 @@
-use std::sync::Arc;
-use axum::{
-    body::to_bytes,
-    extract::State,
-    response::IntoResponse,
-    http::HeaderMap,
-    body::Bytes,
-};
+use axum::{body::to_bytes, body::Bytes, extract::State, http::HeaderMap, response::IntoResponse};
 use hyper::StatusCode;
 use rust_rewrite::{api::api_register, models::RegisterRequest};
+use serde_json::Value;
+use std::sync::Arc;
 use tokio_rusqlite::{params, Connection};
 use tower_cookies::Cookies;
 
@@ -47,22 +42,13 @@ async fn test_register_success() {
     let cookies = Cookies::default();
 
     // Call the API function.
-    let response = api_register(
-        State(db.clone()),
-        cookies,
-        headers,
-        body,
-    )
-    .await
-    .into_response();
-
-    assert_eq!(response.status(), StatusCode::OK);
-
-    let body = to_bytes(response.into_body(), 1000).await.unwrap();
-    let body: Value = serde_json::from_slice(&body).unwrap();
+    let response = api_register(State(db.clone()), cookies, headers, body)
+        .await
+        .into_response();
 
     assert_eq!(response.status(), StatusCode::SEE_OTHER);
 
+    // For a redirect response, we don't expect a body
     // Verify the user was actually inserted into the database
     let user_exists = db
         .call(|conn| {
@@ -75,7 +61,6 @@ async fn test_register_success() {
         .unwrap();
 
     assert!(user_exists, "User was not found in database");
-
 }
 
 #[tokio::test]
@@ -241,7 +226,6 @@ async fn test_register_url_encoded() {
                     password TEXT
                 )",
                 [],
-
             )
             .map_err(|err| err.into())
         })
@@ -257,14 +241,15 @@ async fn test_register_url_encoded() {
 
     // Create a dummy header for the request.
     let mut headers = HeaderMap::new();
-    headers.insert("Content-Type", "application/x-www-form-urlencoded".parse().unwrap());
+    headers.insert(
+        "Content-Type",
+        "application/x-www-form-urlencoded".parse().unwrap(),
+    );
 
     // Create the body as a url-encoded string.
     let body = Bytes::from(format!(
         "username={}&email={}&password={}",
-        register_request.username,
-        register_request.email,
-        register_request.password
+        register_request.username, register_request.email, register_request.password
     ));
 
     let cookies = Cookies::default();
@@ -273,5 +258,5 @@ async fn test_register_url_encoded() {
         .await
         .into_response();
 
-    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
 }
