@@ -10,7 +10,14 @@ RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS builder
 # Install curl in the builder environment - needed for swagger-ui
-RUN apk add --no-cache curl make musl-dev openssl openssl-dev perl pkgconfig
+RUN apk add --no-cache \
+    curl=8.5.0-r0 \
+    make=4.4.1-r1 \
+    musl-dev=1.2.4-r2 \
+    openssl=3.1.4-r5 \
+    openssl-dev=3.1.4-r5 \
+    perl=5.36.1-r2 \
+    pkgconfig=1.8.1-r1
 
 COPY --from=planner /app/recipe.json recipe.json
 # Build dependencies - this is the caching Docker layer!
