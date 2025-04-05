@@ -1,0 +1,26 @@
+name: Sanity Check
+
+on:
+  push:
+    branches: [ "main", "sanity-test" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  sanity-test:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Test Search endpoint
+        run: |
+          curl -X GET "https://sauron.tolana.dev/api/search?q=test"
+
+      - name: Test Register endpoint
+        run: |
+          curl -X POST "https://sauron.tolana.dev/api/register" -H "Content-Type: application/json" -d '{"username": "sanity", "email": "sanity@test.com", "password": "sanity"}'
+
+      - name: Test Login endpoint
+        run: |
+          curl -X POST "https://sauron.tolana.dev/api/login" -H "Content-Type: application/json" -d '{"username": "sanity", "password": "sanity"}'
+          
+          
