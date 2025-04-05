@@ -1,7 +1,6 @@
-use axum::{body::to_bytes, body::Bytes, extract::State, http::HeaderMap, response::IntoResponse};
+use axum::{body::Bytes, extract::State, http::HeaderMap, response::IntoResponse};
 use hyper::StatusCode;
 use rust_rewrite::{api::api_register, models::RegisterRequest};
-use serde_json::Value;
 use std::sync::Arc;
 use tokio_rusqlite::{params, Connection};
 use tower_cookies::Cookies;
