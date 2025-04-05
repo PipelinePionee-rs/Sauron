@@ -32,7 +32,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-# this is propapbly overkill
+      # this is probabaly overkill
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
