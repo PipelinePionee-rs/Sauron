@@ -2,21 +2,19 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Fetch the fragment and inject it into the page.
     // I assume we don't need to worry about compatibility with old browsers, re: fetch.
-    function loadFragment(url, targetId) {
+    function loadFragment(url, targetId, callback) {
         fetch(url)
             .then(response => response.text())
             .then(data => {
                 document.getElementById(targetId).innerHTML = data;
-                if (targetId === 'header-container') {
-                    updateNavLinks(); // For scalability, it's probably better to use a separate function instead of hardcoding this in an if statement.
-                }
+                if (callback) callback();
             })
             .catch(error => console.error('Error loading fragment:', error));
     }
 
     function updateNavLinks() {
         const navLinks = document.getElementById('nav-links');
-        const user = getUser(); // Function to get user info from cookie.
+        const user = null; // getUser(); Function to get user info from cookie.
         // TODO: change this; needs to contact a new endpoint instead, since we use HTTP-only cookies now.
 
         if (user) {
@@ -52,6 +50,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
     */
 
-    loadFragment('./fragments/header.html', 'header-container');
+    loadFragment('./fragments/header.html', 'header-container', updateNavLinks);
     loadFragment('./fragments/footer.html', 'footer-container');
 });

@@ -8,6 +8,8 @@ use crate::models::{
     LoginResponse, LogoutResponse, QueryParams, RegisterRequest, RegisterResponse, WeatherResponse,
 };
 use axum::extract::State;
+use axum::http::HeaderMap;
+use axum::body::Bytes;
 use axum::{
     extract::Query,
     response::IntoResponse,
@@ -15,6 +17,7 @@ use axum::{
     Json, Router,
 };
 
+use hyper::StatusCode;
 use crate::repository::PageRepository;
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -228,19 +231,49 @@ pub async fn api_login(
 // ---------------------------------------------------
 // Register
 // ---------------------------------------------------
-#[utoipa::path(post,
-  path = "/api/register", responses(
-   (status = 200, description = "User registered successfully", body = RegisterResponse),
-   (status = 401, description = "Invalid credentials", body = ApiErrorResponse),
-   (status = 409, description = "Username already exists", body = ApiErrorResponse),
-  ),
-   request_body = RegisterRequest,
-)
-]
+#[utoipa::path(
+    post,
+    path = "/api/register",
+    request_body(content = RegisterRequest, content_type = "application/json"),
+    request_body(content = RegisterRequest, content_type = "application/x-www-form-urlencoded"),
+    responses(
+        (status = 200, description = "User registered successfully", body = RegisterResponse),
+        (status = 401, description = "Invalid credentials", body = ApiErrorResponse),
+        (status = 409, description = "Username already exists", body = ApiErrorResponse),
+    )
+)]
+
 pub async fn api_register(
     db: State<Arc<Connection>>,
     cookies: Cookies,
-    payload: Json<RegisterRequest>,
+    headers: HeaderMap,
+    body: Bytes,
+) -> impl IntoResponse {
+    // Check the content-type header to see if it's JSON or url-encoded form data.
+    if let Some(content_type) = headers.get("Content-Type") {
+        if content_type == "application/json" {
+            // Parse the body as JSON.
+            match serde_json::from_slice::<RegisterRequest>(&body) {
+                Ok(payload) => return api_register_logic(db, cookies, payload).await.into_response(),
+                Err(_) => return (StatusCode::BAD_REQUEST, "Invalid request body (parsed as JSON)").into_response(),
+            }
+        } else if content_type == "application/x-www-form-urlencoded" {
+            // Parse the body as url-encoded form data.
+            match serde_urlencoded::from_bytes::<RegisterRequest>(&body) {
+                Ok(payload) => return api_register_logic(db, cookies, payload).await.into_response(),
+                Err(_) => return (StatusCode::BAD_REQUEST, "Invalid request body (parsed as url-encoded)").into_response(),
+            }
+        }
+    }
+
+    // If the content type isn't either of the above, return an error.
+    (StatusCode::BAD_REQUEST, Json(json!({ "error": "Invalid Content-Type" }))).into_response()
+}
+
+pub async fn api_register_logic(
+    db: State<Arc<Connection>>,
+    cookies: Cookies,
+    payload: RegisterRequest, // Request body extracted by the helper method above.
 ) -> impl IntoResponse {
     println!("->> Register endpoint hit with payload: {:?}", payload);
 
