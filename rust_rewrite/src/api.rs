@@ -64,26 +64,26 @@ pub fn routes(db: Arc<Connection>, repo: Arc<PageRepository>) -> Router {
   ),
 )]
 pub async fn api_search(
-    State(repo): State<Arc<PageRepository>>,
-    Query(query): Query<QueryParams>,
+  State(repo): State<Arc<PageRepository>>,
+  Query(query): Query<QueryParams>,
 ) -> impl IntoResponse {
-    println!(
-        "->> Search endpoint hit with query: {:?} and lang: {:?}",
-        query.q, query.lang
-    );
-    // accepts 'q' and 'lang' query parameters
-    let q = query.q.clone().unwrap_or_default();
+  println!(
+      "->> Search endpoint hit with query: {:?} and lang: {:?}",
+      query.q, query.lang
+  );
+  // accepts 'q' and 'lang' query parameters
+  let q = query.q.clone().unwrap_or_default();
 
-    if q.trim().is_empty() {
-        return Error::UnprocessableEntity.into_response();
-    }
+  if q.trim().is_empty() {
+      return Error::UnprocessableEntity.into_response();
+  }
 
-    let lang = query.lang.clone().unwrap_or("en".to_string());
+  let lang = query.lang.clone().unwrap_or("en".to_string());
 
-    match repo.search(lang, q).await {
-        Ok(data) => Json(json!({ "data": data })).into_response(),
-        Err(_err) => Error::GenericError.into_response(),
-    }
+  match repo.search(lang, q).await {
+      Ok(data) => Json(json!({ "data": data })).into_response(),
+      Err(_err) => Error::GenericError.into_response(),
+  }
 }
 
 // ---------------------------------------------------
@@ -322,11 +322,6 @@ pub async fn api_register_logic(
 
     // sql returns number of affected rows, so we check if it's 1
     if res == 1 {
-        let res = RegisterResponse {
-            message: "User registered successfully".to_string(),
-            status_code: 200,
-        };
-
         // create token, using function in auth.rs
         // it returns a Result<String>, so we unwrap it
         let token = create_token(&username_token).unwrap();
@@ -338,7 +333,8 @@ pub async fn api_register_logic(
         // add cookie to response
         cookies.add(cookie);
 
-        Ok(Json(res).into_response()) // The compiler started throwing a fit over a type mismatch here; hopefully using into_response() fixes that without breaking anything else.
+        // Redirect to "/"
+        Ok(axum::response::Redirect::to("/").into_response())
     } else {
         Err(Error::InvalidCredentials)
     }

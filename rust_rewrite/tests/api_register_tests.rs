@@ -1,22 +1,12 @@
-use std::sync::Arc;
-
-
-use axum::{
-    body::to_bytes,
-    extract::State,
-    response::IntoResponse,
-    http::HeaderMap,
-    body::Bytes,
-};
+use axum::{body::Bytes, extract::State, http::HeaderMap, response::IntoResponse};
 use hyper::StatusCode;
 use rust_rewrite::{api::api_register, models::RegisterRequest};
-use serde_json::{json, Value};
+use std::sync::Arc;
 use tokio_rusqlite::{params, Connection};
 use tower_cookies::Cookies;
 
 #[tokio::test]
 async fn test_register_success() {
-
     // Create an in-memory database.
     let db = Arc::new(Connection::open_in_memory().await.unwrap());
 
@@ -51,21 +41,13 @@ async fn test_register_success() {
     let cookies = Cookies::default();
 
     // Call the API function.
-    let response = api_register(
-        State(db.clone()),
-        cookies,
-        headers,
-        body,
-    )
-    .await
-    .into_response();
+    let response = api_register(State(db.clone()), cookies, headers, body)
+        .await
+        .into_response();
 
-    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
 
-    let body = to_bytes(response.into_body(), 1000).await.unwrap();
-    let body: Value = serde_json::from_slice(&body).unwrap();
-
-
+    // For a redirect response, we don't expect a body
     // Verify the user was actually inserted into the database
     let user_exists = db
         .call(|conn| {
@@ -78,13 +60,7 @@ async fn test_register_success() {
         .unwrap();
 
     assert!(user_exists, "User was not found in database");
-
-    assert_eq!(body, json!({
-        "message": "User registered successfully",
-        "status_code": 200,
-    }));
 }
-
 
 #[tokio::test]
 async fn test_register_invalid_email() {
@@ -107,7 +83,6 @@ async fn test_register_invalid_email() {
         .await;
     assert!(create_table.is_ok(), "Failed to create table");
 
-
     let register_request = RegisterRequest {
         username: "newuser".to_string(),
         email: "invalid-email".to_string(), // Invalid email format
@@ -127,8 +102,7 @@ async fn test_register_invalid_email() {
 
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
-          
-          
+
 #[tokio::test]
 async fn test_register_username_exists() {
     let db = Arc::new(Connection::open_in_memory().await.unwrap());
@@ -143,7 +117,6 @@ async fn test_register_username_exists() {
                     password TEXT
                 )",
                 [],
-
             )
             .map_err(|err| err.into())
         })
@@ -198,7 +171,6 @@ async fn test_register_email_exists() {
                     password TEXT
                 )",
                 [],
-
             )
             .map_err(|err| err.into())
         })
@@ -253,7 +225,6 @@ async fn test_register_url_encoded() {
                     password TEXT
                 )",
                 [],
-
             )
             .map_err(|err| err.into())
         })
@@ -269,14 +240,15 @@ async fn test_register_url_encoded() {
 
     // Create a dummy header for the request.
     let mut headers = HeaderMap::new();
-    headers.insert("Content-Type", "application/x-www-form-urlencoded".parse().unwrap());
+    headers.insert(
+        "Content-Type",
+        "application/x-www-form-urlencoded".parse().unwrap(),
+    );
 
     // Create the body as a url-encoded string.
     let body = Bytes::from(format!(
         "username={}&email={}&password={}",
-        register_request.username,
-        register_request.email,
-        register_request.password
+        register_request.username, register_request.email, register_request.password
     ));
 
     let cookies = Cookies::default();
@@ -285,5 +257,5 @@ async fn test_register_url_encoded() {
         .await
         .into_response();
 
-    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
 }
