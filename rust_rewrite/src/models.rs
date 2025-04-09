@@ -36,7 +36,7 @@ pub struct LoginResponse {
     pub message: String,
 }
 
-#[derive(Deserialize, ToSchema, Debug)]
+#[derive(Deserialize, ToSchema, Debug, Serialize)]
 pub struct RegisterRequest {
     pub username: String,
     pub email: String,
@@ -101,4 +101,15 @@ pub struct Forecast {
 #[derive(Deserialize, Serialize)]
 pub struct WeatherResponse {
     forecast: Forecast,
+}
+
+#[derive(Deserialize, Serialize, Debug, ToSchema)]
+pub struct ChangePasswordRequest {
+    pub new_password: String,
+}
+
+#[derive(Serialize, ToSchema, Debug)]
+pub struct ChangePasswordResponse {
+    pub status_code: i32,
+    pub message: String,
 }

@@ -1,20 +1,12 @@
-use std::sync::Arc;
-
-
-use axum::{
-    body::to_bytes,
-    extract::State,
-    response::IntoResponse, Json,
-};
+use axum::{body::Bytes, extract::State, http::HeaderMap, response::IntoResponse};
 use hyper::StatusCode;
 use rust_rewrite::{api::api_register, models::RegisterRequest};
-use serde_json::{json, Value};
+use std::sync::Arc;
 use tokio_rusqlite::{params, Connection};
 use tower_cookies::Cookies;
 
 #[tokio::test]
 async fn test_register_success() {
-
     // Create an in-memory database.
     let db = Arc::new(Connection::open_in_memory().await.unwrap());
 
@@ -40,24 +32,22 @@ async fn test_register_success() {
         password: "password123".to_string(),
     };
 
+    // Create a dummy header and body for the request.
+    let mut headers = HeaderMap::new();
+    headers.insert("Content-Type", "application/json".parse().unwrap());
+    let body = Bytes::from(serde_json::to_string(&register_request).unwrap());
+
     // Create dummy cookies.
     let cookies = Cookies::default();
 
     // Call the API function.
-    let response = api_register(
-        State(db.clone()),
-        cookies,
-        Json(register_request),
-    )
-    .await
-    .into_response();
+    let response = api_register(State(db.clone()), cookies, headers, body)
+        .await
+        .into_response();
 
-    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
 
-    let body = to_bytes(response.into_body(), 1000).await.unwrap();
-    let body: Value = serde_json::from_slice(&body).unwrap();
-
-
+    // For a redirect response, we don't expect a body
     // Verify the user was actually inserted into the database
     let user_exists = db
         .call(|conn| {
@@ -70,13 +60,7 @@ async fn test_register_success() {
         .unwrap();
 
     assert!(user_exists, "User was not found in database");
-
-    assert_eq!(body, json!({
-        "message": "User registered successfully",
-        "status_code": 200,
-    }));
 }
-
 
 #[tokio::test]
 async fn test_register_invalid_email() {
@@ -99,7 +83,6 @@ async fn test_register_invalid_email() {
         .await;
     assert!(create_table.is_ok(), "Failed to create table");
 
-
     let register_request = RegisterRequest {
         username: "newuser".to_string(),
         email: "invalid-email".to_string(), // Invalid email format
@@ -108,14 +91,18 @@ async fn test_register_invalid_email() {
 
     let cookies = Cookies::default();
 
-    let response = api_register(State(db.clone()), cookies, Json(register_request))
+    // Create a dummy header and body for the request.
+    let mut headers = HeaderMap::new();
+    headers.insert("Content-Type", "application/json".parse().unwrap());
+    let body = Bytes::from(serde_json::to_string(&register_request).unwrap());
+
+    let response = api_register(State(db.clone()), cookies, headers, body)
         .await
         .into_response();
 
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
-          
-          
+
 #[tokio::test]
 async fn test_register_username_exists() {
     let db = Arc::new(Connection::open_in_memory().await.unwrap());
@@ -130,7 +117,6 @@ async fn test_register_username_exists() {
                     password TEXT
                 )",
                 [],
-
             )
             .map_err(|err| err.into())
         })
@@ -157,9 +143,14 @@ async fn test_register_username_exists() {
         password: "password123".to_string(),
     };
 
+    // Create a dummy header and body for the request.
+    let mut headers = HeaderMap::new();
+    headers.insert("Content-Type", "application/json".parse().unwrap());
+    let body = Bytes::from(serde_json::to_string(&register_request).unwrap());
+
     let cookies = Cookies::default();
 
-    let response = api_register(State(db.clone()), cookies, Json(register_request))
+    let response = api_register(State(db.clone()), cookies, headers, body)
         .await
         .into_response();
 
@@ -180,7 +171,6 @@ async fn test_register_email_exists() {
                     password TEXT
                 )",
                 [],
-
             )
             .map_err(|err| err.into())
         })
@@ -209,9 +199,63 @@ async fn test_register_email_exists() {
 
     let cookies = Cookies::default();
 
-    let response = api_register(State(db.clone()), cookies, Json(register_request))
+    // Create a dummy header and body for the request.
+    let mut headers = HeaderMap::new();
+    headers.insert("Content-Type", "application/json".parse().unwrap());
+    let body = Bytes::from(serde_json::to_string(&register_request).unwrap());
+
+    let response = api_register(State(db.clone()), cookies, headers, body)
         .await
         .into_response();
 
     assert_eq!(response.status(), StatusCode::CONFLICT);
+}
+
+#[tokio::test]
+async fn test_register_url_encoded() {
+    let db = Arc::new(Connection::open_in_memory().await.unwrap());
+
+    // Create the users table
+    let create_table = db
+        .call(|conn| {
+            conn.execute(
+                "CREATE TABLE users (
+                    username TEXT,
+                    email TEXT,
+                    password TEXT
+                )",
+                [],
+            )
+            .map_err(|err| err.into())
+        })
+        .await;
+
+    assert!(create_table.is_ok(), "Failed to create table");
+
+    let register_request = RegisterRequest {
+        username: "testuser".to_string(),
+        email: "test@example.com".to_string(),
+        password: "password123".to_string(),
+    };
+
+    // Create a dummy header for the request.
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        "Content-Type",
+        "application/x-www-form-urlencoded".parse().unwrap(),
+    );
+
+    // Create the body as a url-encoded string.
+    let body = Bytes::from(format!(
+        "username={}&email={}&password={}",
+        register_request.username, register_request.email, register_request.password
+    ));
+
+    let cookies = Cookies::default();
+
+    let response = api_register(State(db.clone()), cookies, headers, body)
+        .await
+        .into_response();
+
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
 }

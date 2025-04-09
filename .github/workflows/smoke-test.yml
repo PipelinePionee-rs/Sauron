@@ -1,0 +1,102 @@
+name: Smoke Test
+
+on:
+  push:
+    branches: ["dev"]
+  pull_request:
+    branches: ["dev"]
+
+permissions:
+  actions: read
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build container
+        run: |
+          cd rust_rewrite
+          docker buildx build --platform linux/amd64 --load -t sauron-api .
+
+      - name: Prepare database directory
+        run: |
+          mkdir -p rust_rewrite/data
+          touch rust_rewrite/data/sauron.db
+  
+      - name: Start container
+        run: |
+          docker run -d -p 8084:8084 \
+            -v $(pwd)/rust_rewrite/data:/app/data \
+            --name sauron-container sauron-api
+
+      - name: Wait for application to start
+        run: |
+          echo "Checking container status..."
+          docker ps -a
+            
+          echo "Container logs:"
+          docker logs sauron-container
+            
+          echo "Starting health check..."
+          for i in {1..30}; do
+            if curl -s http://localhost:8084/api/logout > /dev/null; then
+              echo "Application is ready"
+              exit 0
+            fi
+            echo "Waiting for application to start... ($i/30)"
+            if [ $i -eq 1 ] || [ $((i % 5)) -eq 0 ]; then
+              echo "Latest container logs:"
+              docker logs --tail 20 sauron-container
+            fi
+            sleep 2
+          done
+          echo "Application failed to start within 60 seconds"
+          echo "Final container logs:"
+          docker logs sauron-container
+          exit 1
+
+      - name: Test api/logout endpoint
+        run: |
+          SEARCH_STATUS=$(curl -o /dev/null -s -w "%{http_code}\n" "http://localhost:8084/api/logout")
+          if [ $SEARCH_STATUS -eq 200 ]; then
+            echo "Logout endpoint test passed"
+          else
+            echo "Logout endpoint test failed with status $SEARCH_STATUS"
+            exit 1
+          fi
+
+      # - name: Test Search endpoint
+      #   run: |
+      #     SEARCH_STATUS=$(curl -o /dev/null -s -w "%{http_code}\n" "http://localhost:8084/api/search?q=test")
+      #     if [ $SEARCH_STATUS -eq 200 ]; then
+      #       echo "Search endpoint test passed"
+      #     else
+      #       echo "Search endpoint test failed with status $SEARCH_STATUS"
+      #       exit 1
+      #     fi
+
+      # - name: Test Login endpoint
+      #   run: |
+      #     LOGIN_STATUS=$(curl -X POST -H "Content-Type: application/json" \
+      #       -d '{"username":"smoketest","password":"test"}' \
+      #       -o /dev/null -s -w "%{http_code}\n" \
+      #       http://localhost:8084/api/login)
+      #     if [ $LOGIN_STATUS -eq 200 ]; then
+      #       echo "Login endpoint test passed"
+      #     else
+      #       echo "Login endpoint test failed with status $LOGIN_STATUS"
+      #       exit 1
+      #     fi
+
+      - name: Cleanup
+        if: always()
+        run: docker rm -f sauron-container
