@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const params = new URLSearchParams(window.location.search);
     const value = params.get('q'); // Get a specific query param
     if(value) {
-        makeSearchRequest();
+        makeSearchRequest(value);
     }
 
     // Search when the user clicks the search button.
@@ -29,9 +29,8 @@ function search() {
     }
 }
 
-async function makeSearchRequest() {
-    const query = document.getElementById("search-input").value;
-    const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`); // This supposedly also needs a 'language' parameter, but I can't find it in the legacy code. Does it mean programming language or human language?
+async function makeSearchRequest(value) {
+    const response = await fetch(`/api/search?q=${encodeURIComponent(value)}`); // This supposedly also needs a 'language' parameter, but I can't find it in the legacy code. Does it mean programming language or human language?
     const searchResults = await response.json();
     console.log(searchResults);
 
