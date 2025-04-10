@@ -13,26 +13,41 @@ env:
 jobs:
   build:
 
-    runs-on: blacksmith-4vcpu-ubuntu-2204
+    runs-on: blacksmith-2vcpu-ubuntu-2204
 
     steps:
     - uses: actions/checkout@v4
 
-    # This would work, but we don't have our dependencies in root, so it doesn't.
-    # We need to cache manually.
-    # - name: Setup Rust cache
-    #   uses: useblacksmith/rust-cache@v3
+    - name: Copy Cargo.toml and Cargo.lock to root (for caching)
+      run: |
+        cp rust_rewrite/Cargo.toml .
+        cp rust_rewrite/Cargo.lock .
 
-    - name: Restore Cargo cache
-      uses: useblacksmith/cache@v5
+    - name: Setup Rust cache
+      uses: useblacksmith/rust-cache@v3
+
+    - name: Remove copied files
+      run: |
+        rm Cargo.toml Cargo.lock
+
+    - name: Run Clippy
+      run: |
+        cd rust_rewrite
+        cargo clippy --all-targets --all-features
+
+    - name: Hadolint
+      uses: hadolint/hadolint-action@v3.1.0
       with:
-        path: |
-          rust_rewrite/target
-          ~/.cargo/registry
-          ~/.cargo/git
-        key: rust-${{ runner.os }}-${{ hashFiles('rust_rewrite/Cargo.lock') }}
-        restore-keys: |
-          rust-${{ runner.os }}-
+        dockerfile: rust_rewrite/Dockerfile
+        format: sarif
+        output-file: hadolint-results.sarif
+          
+    - name: Upload Hadolint results
+      uses: github/codeql-action/upload-sarif@v3
+      if: success() || failure()
+      with:
+        sarif_file: hadolint-results.sarif
+        wait-for-processing: true
 
     - name: Build
       run: |

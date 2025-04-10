@@ -10,7 +10,7 @@ jobs:
 
   docker-build-push:
     # if: startsWith(github.ref, 'refs/tags/') && github.base_ref == 'main'
-    runs-on: blacksmith-4vcpu-ubuntu-2204
+    runs-on: blacksmith-2vcpu-ubuntu-2204
 
     steps:
     
