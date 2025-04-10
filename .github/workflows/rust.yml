@@ -18,8 +18,22 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup Rust cache
-      uses: useblacksmith/rust-cache@v3
+    # This would work, but we don't have our dependencies in root, so it doesn't.
+    # We need to cache manually.
+    # - name: Setup Rust cache
+    #   uses: useblacksmith/rust-cache@v3
+
+    - name: Restore Cargo cache
+      uses: useblacksmith/cache@v5
+      with:
+        path: |
+          rust_rewrite/target
+          ~/.cargo/registry
+          ~/.cargo/git
+        key: rust-${{ runner.os }}-${{ hashFiles('rust_rewrite/Cargo.lock') }}
+        restore-keys: |
+          rust-${{ runner.os }}-
+
     - name: Build
       run: |
            cd rust_rewrite/
