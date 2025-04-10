@@ -14,3 +14,8 @@ We've implemented a robust CI/CD pipeline using GitHub Actions, which has signif
 
 *Lean*
 We've adopted lean principles by focusing on delivering value continuously in small increments. By working in short iterations and getting rapid feedback, we minimize waste and optimize our workflow. Our migration from Python to Rust demonstrates our commitment to eliminating technical debt and building more efficient systems that deliver better performance for our users.
+
+*Measurement*
+
+*Sharing*
+Knowledge sharing is a core part of our process. While we haven’t practiced pair programming, we hold regular online meetings where team members actively support each other by discussing challenges, sharing insights, and offering help. Although our README and documentation are still evolving, they provide a starting point for understanding the project and contributing to the codebase. These collaborative practices have fostered open communication and strengthened the connection between team members, supporting a culture of continuous learning.
