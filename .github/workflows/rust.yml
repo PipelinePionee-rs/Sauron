@@ -18,17 +18,16 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Copy Cargo.toml and Cargo.lock to root (for caching)
-      run: |
-        cp rust_rewrite/Cargo.toml .
-        cp rust_rewrite/Cargo.lock .
-
-    - name: Setup Rust cache
-      uses: useblacksmith/rust-cache@v3
-
-    - name: Remove copied files
-      run: |
-        rm Cargo.toml Cargo.lock
+    - name: Cache Rust dependencies
+      uses: useblacksmith/cache@v5
+      with:
+        path: |
+          rust_rewrite/target
+          ~/.cargo/registry
+          ~/.cargo/git
+        key: rust-${{ runner.os }}-${{ hashFiles('rust_rewrite/Cargo.lock') }}
+        restore-keys: |
+          rust-${{ runner.os }}-
 
     - name: Run Clippy
       run: |
