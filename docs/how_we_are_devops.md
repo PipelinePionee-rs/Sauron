@@ -8,3 +8,7 @@ We've chosen to frame our "How are you DevOps?" assignment through the CALMS fra
 
 **Culture**
 Our team has cultivated a strong DevOps culture based on psychological safety. We encourage open communication, where team members feel comfortable sharing ideas, raising concerns, and making mistakes. This has fostered an environment of continuous learning and innovation, where we support and help each other rather than assigning blame. Our regular meetings allow us to reflect on our processes and implement improvements collaboratively.
+
+**Automation**
+We've implemented a robust CI/CD pipeline using GitHub Actions, which has significantly improved our development workflow. Our automated workflows run tests on every pull request and code push from dev to main branch, ensuring we catch issues early in the development cycle. After successful builds, our system automatically deploys to our production environment, reducing manual intervention and potential human error.
+
