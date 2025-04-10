@@ -17,6 +17,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+
+    - name: Setup Rust cache
+      uses: useblacksmith/rust-cache@v3
     - name: Build
       run: |
            cd rust_rewrite/

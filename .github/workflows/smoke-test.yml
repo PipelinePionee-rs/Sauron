@@ -22,16 +22,53 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # Restore Docker build cache (Blacksmith cache)
+      - name: Restore Docker build cache
+        uses: useblacksmith/cache@v5
+        with:
+          path: /tmp/.buildx-cache
+          key: buildx-${{ runner.os }}-${{ github.ref }}-${{ github.sha }}
+          restore-keys: |
+            buildx-${{ runner.os }}-${{ github.ref }}-
+            buildx-${{ runner.os }}-
+
+      # Optional: Restore Rust build artifacts cache
+      - name: Restore Rust cache
+        uses: useblacksmith/cache@v5
+        with:
+          path: |
+            rust_rewrite/target
+            ~/.cargo/registry
+          key: rust-${{ runner.os }}-${{ hashFiles('rust_rewrite/Cargo.lock') }}
+          restore-keys: |
+            rust-${{ runner.os }}-
+
       - name: Build container
         run: |
           cd rust_rewrite
-          docker buildx build --platform linux/amd64 --load -t sauron-api .
+          docker buildx build \
+            --platform linux/amd64 \
+            --cache-from=type=local,src=/tmp/.buildx-cache \
+            --cache-to=type=local,dest=/tmp/.buildx-cache-new,mode=max \
+            --load -t sauron-api .
+
+      - name: Move Docker build cache
+        if: always()
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      - name: Save Docker build cache
+        uses: useblacksmith/cache@v5
+        with:
+          path: /tmp/.buildx-cache
+          key: buildx-${{ runner.os }}-${{ github.ref }}-${{ github.sha }}
 
       - name: Prepare database directory
         run: |
           mkdir -p rust_rewrite/data
           touch rust_rewrite/data/sauron.db
-  
+
       - name: Start container
         run: |
           docker run -d -p 8084:8084 \
@@ -42,10 +79,10 @@ jobs:
         run: |
           echo "Checking container status..."
           docker ps -a
-            
+
           echo "Container logs:"
           docker logs sauron-container
-            
+
           echo "Starting health check..."
           for i in {1..30}; do
             if curl -s http://localhost:8084/api/logout > /dev/null; then
