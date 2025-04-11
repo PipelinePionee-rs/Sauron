@@ -1,7 +1,7 @@
 use tokio_rusqlite::{Connection, Result};
 use tracing::{error, info};
 pub async fn create_db_connection() -> Result<Connection> {
-    println!("->> Attempting to connect to database at data/sauron.db");
+    info!("->> Attempting to connect to database at data/sauron.db");
     match Connection::open("data/sauron.db").await {
         Ok(conn) => {
             info!("->> Successfully connected to database");
