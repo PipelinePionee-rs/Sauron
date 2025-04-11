@@ -142,14 +142,15 @@ pub async fn api_change_password(
     };
 
     // Update password in database
-    match db
+    let db_result = db
         .call(move |conn| {
             let mut stmt = conn.prepare("UPDATE users SET password = ?1 WHERE username = ?2")?;
             stmt.execute(params![&hashed_password, &username])?;
             Ok(())
         })
-        .await
-    {
+        .await;
+
+    match db_result {
         Ok(_) => {
             println!("->> Successfully updated password in database");
             Ok(Json(ChangePasswordResponse {

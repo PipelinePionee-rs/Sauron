@@ -10,7 +10,7 @@ jobs:
 
   docker-build-push:
     # if: startsWith(github.ref, 'refs/tags/') && github.base_ref == 'main'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2204
 
     steps:
     
@@ -40,7 +40,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build and Push Docker Image with Both Tags
-        uses: docker/build-push-action@v6
+        uses: useblacksmith/build-push-action@v1
         with:
           context: ./rust_rewrite
           file: ./rust_rewrite/Dockerfile
@@ -52,7 +52,7 @@ jobs:
 
 
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2204
     needs: docker-build-push
     steps:
 
