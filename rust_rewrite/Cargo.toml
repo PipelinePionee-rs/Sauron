@@ -38,7 +38,7 @@ regex = "1.11.1"
 
 reqwest = { version = "0.12", features = ["json"] } # For HTTP requests.
 chrono = "0.4" # needed for setting expiration time for JWT
-tracing-subscriber = "0.3.19"
+tracing-subscriber = { version = "0.3.19", features = ["fmt", "json"]}
 tracing = "0.1.41"
 
 [dev-dependencies]
