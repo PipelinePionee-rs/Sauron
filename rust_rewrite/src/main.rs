@@ -44,7 +44,14 @@ struct ApiDoc; // this is the struct that will be used to generate the OpenAPI d
 
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt().with_target(false).init();
+    tracing_subscriber::fmt().json()
+    .with_current_span(true)
+    .with_span_list(true)
+    .with_target(true)
+    .with_level(true)
+    .with_thread_names(true)
+    .with_thread_ids(true)
+    .init();
 
     // sets server to listen on localhost:8084
     let listener = TcpListener::bind("0.0.0.0:8084").await.unwrap();
