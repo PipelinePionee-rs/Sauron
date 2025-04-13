@@ -44,14 +44,16 @@ struct ApiDoc; // this is the struct that will be used to generate the OpenAPI d
 
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt().json()
-    .with_current_span(true)
-    .with_span_list(true)
-    .with_target(true)
-    .with_level(true)
-    .with_thread_names(true)
-    .with_thread_ids(true)
-    .init();
+    tracing_subscriber::fmt()
+        .json()
+        //.with_current_span(true)
+        //.with_span_list(true)
+        .with_target(true)
+        .with_level(true)
+        //.with_thread_names(true)
+        //.with_thread_ids(true)
+        .flatten_event(true)
+        .init();
 
     // sets server to listen on localhost:8084
     let listener = TcpListener::bind("0.0.0.0:8084").await.unwrap();
@@ -72,7 +74,7 @@ async fn main() {
         .nest("/api/", api::routes(db.clone(), repo.clone())) // merge the routes from api.rs
         .merge(SwaggerUi::new("/doc/swagger-ui").url("/doc/api-doc/openapi.json", open_api_doc)) // add swagger ui, and openapi doc
         .layer(CookieManagerLayer::new())
-        .layer(middleware::map_response(main_response_mapper))
+        // .layer(middleware::map_response(main_response_mapper))
         .layer(CorsLayer::new().allow_credentials(true));
 
     // start server
