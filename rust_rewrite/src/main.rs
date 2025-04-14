@@ -57,7 +57,7 @@ async fn main() {
 
     // sets server to listen on localhost:8084
     let listener = TcpListener::bind("0.0.0.0:8084").await.unwrap();
-    info!("->> LISTENING on {:?}\n", listener.local_addr());
+    info!("LISTENING on {:?}", listener.local_addr());
 
     async fn main_response_mapper(res: Response) -> Response {
         println!();
