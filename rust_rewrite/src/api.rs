@@ -7,9 +7,9 @@ use crate::models::{
     ApiErrorResponse, ChangePasswordRequest, ChangePasswordResponse, Data, LoginRequest,
     LoginResponse, LogoutResponse, QueryParams, RegisterRequest, RegisterResponse, WeatherResponse,
 };
+use axum::body::Bytes;
 use axum::extract::State;
 use axum::http::HeaderMap;
-use axum::body::Bytes;
 use axum::{
     extract::Query,
     response::IntoResponse,
@@ -17,8 +17,8 @@ use axum::{
     Json, Router,
 };
 
-use hyper::StatusCode;
 use crate::repository::PageRepository;
+use hyper::StatusCode;
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde_json::json;
@@ -26,6 +26,8 @@ use tokio_rusqlite::{params, Connection};
 use tower_cookies::{Cookie, Cookies};
 
 use reqwest::Client;
+
+use tracing::info;
 
 pub const TOKEN: &str = "auth_token";
 
@@ -64,26 +66,26 @@ pub fn routes(db: Arc<Connection>, repo: Arc<PageRepository>) -> Router {
   ),
 )]
 pub async fn api_search(
-  State(repo): State<Arc<PageRepository>>,
-  Query(query): Query<QueryParams>,
+    State(repo): State<Arc<PageRepository>>,
+    Query(query): Query<QueryParams>,
 ) -> impl IntoResponse {
-  println!(
-      "->> Search endpoint hit with query: {:?} and lang: {:?}",
-      query.q, query.lang
-  );
-  // accepts 'q' and 'lang' query parameters
-  let q = query.q.clone().unwrap_or_default();
+    info!(
+        "Search endpoint hit with query: {:?} and lang: {:?}",
+        query.q, query.lang
+    );
+    // accepts 'q' and 'lang' query parameters
+    let q = query.q.clone().unwrap_or_default();
 
-  if q.trim().is_empty() {
-      return Error::UnprocessableEntity.into_response();
-  }
+    if q.trim().is_empty() {
+        return Error::UnprocessableEntity.into_response();
+    }
 
-  let lang = query.lang.clone().unwrap_or("en".to_string());
+    let lang = query.lang.clone().unwrap_or("en".to_string());
 
-  match repo.search(lang, q).await {
-      Ok(data) => Json(json!({ "data": data })).into_response(),
-      Err(_err) => Error::GenericError.into_response(),
-  }
+    match repo.search(lang, q).await {
+        Ok(data) => Json(json!({ "data": data })).into_response(),
+        Err(_err) => Error::GenericError.into_response(),
+    }
 }
 
 // ---------------------------------------------------
@@ -112,7 +114,7 @@ pub async fn api_change_password(
     }
 
     let token = token.unwrap();
-    let masked_token = format!("{}...{}", &token[..4], &token[token.len()-4..]);
+    let masked_token = format!("{}...{}", &token[..4], &token[token.len() - 4..]);
     println!("->> Found token: {:?}", masked_token);
     // Decode token to get username
     let claims = match auth::decode_token(&token) {
@@ -255,20 +257,44 @@ pub async fn api_register(
         if content_type == "application/json" {
             // Parse the body as JSON.
             match serde_json::from_slice::<RegisterRequest>(&body) {
-                Ok(payload) => return api_register_logic(db, cookies, payload).await.into_response(),
-                Err(_) => return (StatusCode::BAD_REQUEST, "Invalid request body (parsed as JSON)").into_response(),
+                Ok(payload) => {
+                    return api_register_logic(db, cookies, payload)
+                        .await
+                        .into_response()
+                }
+                Err(_) => {
+                    return (
+                        StatusCode::BAD_REQUEST,
+                        "Invalid request body (parsed as JSON)",
+                    )
+                        .into_response()
+                }
             }
         } else if content_type == "application/x-www-form-urlencoded" {
             // Parse the body as url-encoded form data.
             match serde_urlencoded::from_bytes::<RegisterRequest>(&body) {
-                Ok(payload) => return api_register_logic(db, cookies, payload).await.into_response(),
-                Err(_) => return (StatusCode::BAD_REQUEST, "Invalid request body (parsed as url-encoded)").into_response(),
+                Ok(payload) => {
+                    return api_register_logic(db, cookies, payload)
+                        .await
+                        .into_response()
+                }
+                Err(_) => {
+                    return (
+                        StatusCode::BAD_REQUEST,
+                        "Invalid request body (parsed as url-encoded)",
+                    )
+                        .into_response()
+                }
             }
         }
     }
 
     // If the content type isn't either of the above, return an error.
-    (StatusCode::BAD_REQUEST, Json(json!({ "error": "Invalid Content-Type" }))).into_response()
+    (
+        StatusCode::BAD_REQUEST,
+        Json(json!({ "error": "Invalid Content-Type" })),
+    )
+        .into_response()
 }
 
 pub async fn api_register_logic(
