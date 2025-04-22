@@ -1,0 +1,31 @@
+services:
+  fluentd:
+    build:
+      context: .
+    environment:
+      PG_USER: ${PG_USER}
+      PG_PASSWORD: ${PG_PASSWORD}
+      PG_DB: ${PG_DB}
+    ports:
+      - "24224:24224"
+    volumes:
+      - ./fluentd/fluent.conf:/fluentd/etc/fluent.conf
+    healthcheck:
+      test: ["CMD", "nc", "-vz", "0.0.0.0", "24224"]  # Check if port 24224 is open
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    depends_on:
+      - postgres
+   
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+      POSTGRES_DB: ${PG_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d    
+volumes:
+  pgdata:
