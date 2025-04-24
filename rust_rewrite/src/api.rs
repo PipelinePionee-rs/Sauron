@@ -16,6 +16,7 @@ use axum::{
     routing::{get, post, put},
     Json, Router,
 };
+use hyper::StatusCode;
 
 use crate::repository::PageRepository;
 use hyper::StatusCode;
@@ -186,13 +187,16 @@ pub async fn api_login(
 
     // get username from payload
     let username = payload.username.clone();
+    let username_for_reset_check = payload.username.clone();
 
     let db_result = db
         .call(move |conn| {
             let mut stmt =
                 conn.prepare("SELECT username, password FROM users WHERE username = ?1")?;
 
-            let rows = stmt.query_map(params![&username], |row| Ok((row.get(0)?, row.get(1)?)))?;
+            let rows = stmt.query_map(params![username.clone()], |row| {
+                Ok((row.get(0)?, row.get(1)?))
+            })?;
 
             let results: Vec<(String, String)> = rows.filter_map(|res| res.ok()).collect();
             Ok(results)
@@ -223,12 +227,36 @@ pub async fn api_login(
     // add cookie to response
     cookies.add(cookie);
 
+    let should_reset_result = db
+        .call(move |conn| {
+            let mut stmt =
+                conn.prepare("SELECT username, should_reset FROM users WHERE username = ?1")?;
+
+            let rows = stmt.query_map(params![&username_for_reset_check], |row| {
+                Ok((row.get(0)?, row.get(1)?))
+            })?;
+
+            let results: Vec<(String, i32)> = rows.filter_map(|res| res.ok()).collect();
+            Ok(results)
+        })
+        .await;
+
+    let should_reset = should_reset_result.unwrap()[0].1;
+
+    if should_reset == 1 {
+        let res = LoginResponse {
+            message: "Change password".to_string(),
+            status_code: 403,
+        };
+        return Ok((StatusCode::FORBIDDEN, Json(res)));
+    }
+
     let res = LoginResponse {
         message: "Login successful".to_string(),
         status_code: 200,
     };
 
-    Ok(Json(res))
+    Ok((StatusCode::OK, Json(res)))
 }
 
 // ---------------------------------------------------
@@ -340,8 +368,8 @@ pub async fn api_register_logic(
     let res = db
         .call(move |conn| {
             conn.execute(
-                "INSERT INTO users (username, email, password) VALUES (?1, ?2, ?3)",
-                params![&payload.username, &payload.email, &hashed_password], // note we insert hashed password
+                "INSERT INTO users (username, email, password, should_reset) VALUES (?1, ?2, ?3,?4)",
+                params![&payload.username, &payload.email, &hashed_password, 0], // note we insert hashed password
             )
             .map_err(tokio_rusqlite::Error::from) // we have to convert the error type, else rust will complain
         })
