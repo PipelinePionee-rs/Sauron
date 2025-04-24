@@ -59,14 +59,15 @@ fn setup_metrics_recorder() -> PrometheusHandle {
         .expect("Failed to install Prometheus recorder")
 }
 
-pub fn routes(db: Arc<Connection>, repo: Arc<PageRepository>) -> Router {
+pub fn routes(db: Arc<Connection>, repo: Arc<PageRepository>, handle: PrometheusHandle) -> Router {
     Router::new()
         .route("/login", post(api_login))
         .route("/register", post(api_register))
         .route("/change_password", put(api_change_password))
         .route("/logout", get(api_logout))
         .route("/weather", get(api_weather))
-        .route("/search", get(api_search).with_state(repo)) // Only `search` uses PageRepository
+        .route("/search", get(api_search).with_state(repo))
+        .route("/metrics", get(move || ready(handle.render()))) // Only `search` uses PageRepository
         .with_state(db) // Other routes still use Connection
 }
 
@@ -437,8 +438,55 @@ pub async fn api_weather() -> impl IntoResponse {
     Json(response)
 }
 // ---------------------------------------------------
-// Prometheus metrics route
+// Prometheus metrics
 // ---------------------------------------------------
+
+//Middleware to track HTTP request count and duration
+async fn track_metrics<B>(req: Request<B>, next: Next<B>) -> impl IntoResponse {
+    let start = Instant::now();
+
+    let method = req.method().clone();
+    let path = req
+        .extensions()
+        .get::<MatchedPath>()
+        .map(|p| p.as_str())
+        .unwrap_or("unknown");
+
+    let response = next.run(req).await;
+    let duration = start.elapsed().as_secs_f64();
+
+    increment_counter!("http_requests_total", "method" => method.as_str(), "path" => path);
+    histogram!("http_request_duration_seconds", duration, "method" => method.as_str(), "path" => path);
+
+    response
+}
+
+#[tokio::main]
+async fn main() {
+    // Set up tracing (not strictly necessary for metrics, but great for debugging)
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+
+    // Setup metrics
+    let prometheus_handle = setup_metrics_recorder();
+
+    // Routes
+    let app = Router::new()
+        .route("/hello", get(|| async { "Hello from Axum + Prometheus!" }))
+        .layer(middleware::from_fn(track_metrics)) // ⬅️ Apply middleware to track all requests
+
+        // 🧬 Merge in the metrics route
+        .merge(metrics_route(prometheus_handle));
+
+    let addr = SocketAddr::from(([0, 0, 0, 0], 8084));
+    println!("Listening on {}", addr);
+
+    axum::Server::bind(&addr)
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
+}
 
 
 // ---------------------------------------------------
