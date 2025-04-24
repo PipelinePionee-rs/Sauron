@@ -12,12 +12,16 @@ services:
       - "8084:8084"
     volumes:
       - ./data:/app/data
+      - ./migrations:/app/migrations
     restart: unless-stopped
     environment:
       - RUST_LOG=debug
       - DATABASE_URL=postgres://sauron:sauron@db:5432/sauron
     networks:
       - sauron-network
+    depends_on:
+      db:
+        condition: service_healthy
   db:
     image: postgres
     container_name: postgres
@@ -28,10 +32,16 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
     restart: unless-stopped
     networks:
       - sauron-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sauron"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 networks:
   sauron-network:
