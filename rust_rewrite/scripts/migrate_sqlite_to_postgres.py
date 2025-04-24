@@ -1,0 +1,54 @@
+import sqlite3
+import psycopg2
+from datetime import datetime
+
+def migrate_data():
+    # Connect to SQLite
+    sqlite_conn = sqlite3.connect('../data/sauron.db')
+    sqlite_cur = sqlite_conn.cursor()
+
+    # Connect to PostgreSQL
+    pg_conn = psycopg2.connect(
+        dbname="sauron",
+        user="sauron",
+        password="sauron",
+        host="localhost",
+        port="5432"
+    )
+    pg_cur = pg_conn.cursor()
+
+    try:
+        # Migrate pages table
+        sqlite_cur.execute("SELECT title, url, language, last_updated, content FROM pages")
+        pages = sqlite_cur.fetchall()
+        
+        for page in pages:
+            pg_cur.execute("""
+                INSERT INTO pages (title, url, language, last_updated, content)
+                VALUES (%s, %s, %s, %s, %s)
+            """, page)
+
+        # Migrate users table
+        sqlite_cur.execute("SELECT username, email, password FROM users")
+        users = sqlite_cur.fetchall()
+        
+        for user in users:
+            pg_cur.execute("""
+                INSERT INTO users (username, email, password)
+                VALUES (%s, %s, %s)
+            """, user)
+
+        # Commit the changes
+        pg_conn.commit()
+        print("Migration completed successfully!")
+
+    except Exception as e:
+        print(f"Error during migration: {e}")
+        pg_conn.rollback()
+    
+    finally:
+        sqlite_conn.close()
+        pg_conn.close()
+
+if __name__ == "__main__":
+    migrate_data()
