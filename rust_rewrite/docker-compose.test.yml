@@ -1,0 +1,48 @@
+services:
+  api:
+    container_name: sauron
+    image: saurondev/sauron:latest
+    build: .
+    ports:
+      - "8084:8084"
+    volumes:
+      - ./data:/app/data
+      - ./migrations:/app/migrations
+    restart: unless-stopped
+    environment:
+      - RUST_LOG=debug
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/test_db
+    networks:
+      - sauron-network
+    depends_on:
+      db:
+        condition: service_healthy
+  db:
+    image: postgres
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: test_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+    networks:
+      - sauron-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+networks:
+  sauron-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  data:
