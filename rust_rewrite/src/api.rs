@@ -19,7 +19,7 @@ use axum::{
     extract::Query,
     response::IntoResponse,
     routing::{get, post, put},
-    Json, Router,
+    Json,
 };
 
 use crate::repository::PageRepository;
@@ -452,36 +452,6 @@ pub async fn api_weather() -> impl IntoResponse {
     // Should be wrapped as Data, but that causes the compiler to complain.
     Json(response)
 }
-// ---------------------------------------------------
-// Prometheus metrics
-// ---------------------------------------------------
-#[tokio::main]
-async fn main() {
-    // Set up tracing (not strictly necessary for metrics, but great for debugging)
-    tracing_subscriber::registry()
-        .with(tracing_subscriber::fmt::layer())
-        .init();
-
-    // Setup metrics
-    let prometheus_handle = setup_metrics_recorder();
-
-    // Routes
-    let app = Router::new()
-        .route("/hello", get(|| async { "Hello from Axum + Prometheus!" }))
-        .layer(middleware::from_fn(track_metrics)) // ⬅️ Apply middleware to track all requests
-
-        // 🧬 Merge in the metrics route
-        .merge(metrics_route(prometheus_handle));
-
-    let addr = SocketAddr::from(([0, 0, 0, 0], 8084));
-    println!("Listening on {}", addr);
-
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
-}
-
 
 // ---------------------------------------------------
 // Dummy routes

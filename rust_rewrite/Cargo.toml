@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 
 # this should fix docker build issues
-openssl = { version = "0.10", features = ["vendored"]}
+#openssl = { version = "0.10", features = ["vendored"]}
 
 zip = "=2.4.2"
 
