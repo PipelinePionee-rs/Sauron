@@ -40,6 +40,7 @@ reqwest = { version = "0.12", features = ["json"] } # For HTTP requests.
 chrono = "0.4" # needed for setting expiration time for JWT
 tracing-subscriber = { version = "0.3.19", features = ["fmt", "json"]}
 tracing = "0.1.41"
+sqlx = { version = "0.8.5" , features = ["runtime-tokio", "tls-rustls", "postgres", "macros", "chrono", "json", "uuid"] } # async SQL library
 
 [dev-dependencies]
 anyhow = "1"

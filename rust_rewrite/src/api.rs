@@ -22,7 +22,7 @@ use hyper::StatusCode;
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde_json::json;
-use tokio_rusqlite::{params, Connection};
+use crate::db::DbPool;
 use tower_cookies::{Cookie, Cookies};
 
 use reqwest::Client;
@@ -40,7 +40,7 @@ lazy_static! {
     .unwrap();
 }
 
-pub fn routes(db: Arc<Connection>, repo: Arc<PageRepository>) -> Router {
+pub fn routes(db: Arc<DbPool>, repo: Arc<PageRepository>) -> Router {
     Router::new()
         .route("/login", post(api_login))
         .route("/register", post(api_register))
@@ -100,71 +100,70 @@ pub async fn api_search(
   request_body = ChangePasswordRequest,
 )]
 pub async fn api_change_password(
-    State(db): State<Arc<Connection>>,
-    cookies: Cookies,
-    payload: Json<ChangePasswordRequest>,
+  State(db): State<Arc<DbPool>>,
+  cookies: Cookies,
+  payload: Json<ChangePasswordRequest>,
 ) -> Result<Json<ChangePasswordResponse>, Error> {
-    println!("->> Change password endpoint hit");
+  println!("->> Change password endpoint hit");
 
-    // Get token from cookie
-    let token = cookies.get(TOKEN).map(|c| c.value().to_string());
-    if token.is_none() {
-        println!("->> No auth token found");
-        return Err(Error::InvalidCredentials);
-    }
+  // Get token from cookie
+  let token = cookies.get(TOKEN).map(|c| c.value().to_string());
+  if token.is_none() {
+      println!("->> No auth token found");
+      return Err(Error::InvalidCredentials);
+  }
 
-    let token = token.unwrap();
-    let masked_token = format!("{}...{}", &token[..4], &token[token.len() - 4..]);
-    println!("->> Found token: {:?}", masked_token);
-    // Decode token to get username
-    let claims = match auth::decode_token(&token) {
-        Ok(claims) => {
-            println!("->> Successfully decoded token");
-            claims
-        }
-        Err(e) => {
-            println!("->> Failed to decode token: {:?}", e);
-            return Err(Error::InvalidCredentials);
-        }
-    };
+  let token = token.unwrap();
+  let masked_token = format!("{}...{}", &token[..4], &token[token.len() - 4..]);
+  println!("->> Found token: {:?}", masked_token);
+  
+  // Decode token to get username
+  let claims = match auth::decode_token(&token) {
+      Ok(claims) => {
+          println!("->> Successfully decoded token");
+          claims
+      }
+      Err(e) => {
+          println!("->> Failed to decode token: {:?}", e);
+          return Err(Error::InvalidCredentials);
+      }
+  };
 
-    let username = claims.sub;
-    println!("->> Decoded username from token: {:?}", username);
+  let username = claims.sub;
+  println!("->> Decoded username from token: {:?}", username);
 
-    // Hash new password
-    let hashed_password = match hash_password(&payload.new_password).await {
-        Ok(hash) => {
-            println!("->> Successfully hashed new password");
-            hash
-        }
-        Err(e) => {
-            println!("->> Failed to hash password: {:?}", e);
-            return Err(Error::GenericError);
-        }
-    };
+  // Hash new password
+  let hashed_password = match hash_password(&payload.new_password).await {
+      Ok(hash) => {
+          println!("->> Successfully hashed new password");
+          hash
+      }
+      Err(e) => {
+          println!("->> Failed to hash password: {:?}", e);
+          return Err(Error::GenericError);
+      }
+  };
 
-    // Update password in database
-    let db_result = db
-        .call(move |conn| {
-            let mut stmt = conn.prepare("UPDATE users SET password = ?1 WHERE username = ?2")?;
-            stmt.execute(params![&hashed_password, &username])?;
-            Ok(())
-        })
-        .await;
+  // Update password in database
+  let result = sqlx::query("UPDATE users SET password = $1 WHERE username = $2")
+      .bind(hashed_password)
+      .bind(username)
+      .execute(db.as_ref())
+      .await;
 
-    match db_result {
-        Ok(_) => {
-            println!("->> Successfully updated password in database");
-            Ok(Json(ChangePasswordResponse {
-                status_code: 200,
-                message: "Password changed successfully".to_string(),
-            }))
-        }
-        Err(e) => {
-            println!("->> Failed to update password in database: {:?}", e);
-            Err(Error::GenericError)
-        }
-    }
+  match result {
+      Ok(_) => {
+          println!("->> Successfully updated password in database");
+          Ok(Json(ChangePasswordResponse {
+              status_code: 200,
+              message: "Password changed successfully".to_string(),
+          }))
+      }
+      Err(e) => {
+          println!("->> Failed to update password in database: {:?}", e);
+          Err(Error::GenericError)
+      }
+  }
 }
 
 // ---------------------------------------------------
@@ -178,29 +177,44 @@ pub async fn api_change_password(
  request_body = LoginRequest,
 )]
 pub async fn api_login(
-    State(db): State<Arc<Connection>>,
+    State(db): State<Arc<DbPool>>,
     cookies: Cookies,
     payload: Json<LoginRequest>,
 ) -> impl IntoResponse {
     println!("->> Login endpoint hit with payload: {:?}", payload);
 
-    // get username from payload
-    let username = payload.username.clone();
-
-    let db_result = db
-        .call(move |conn| {
-            let mut stmt =
-                conn.prepare("SELECT username, password FROM users WHERE username = ?1")?;
-
-            let rows = stmt.query_map(params![&username], |row| Ok((row.get(0)?, row.get(1)?)))?;
-
-            let results: Vec<(String, String)> = rows.filter_map(|res| res.ok()).collect();
-            Ok(results)
-        })
+    
+    // Get user from database
+    let user = sqlx::query_as::<_, (String, String)>("SELECT username, password FROM users WHERE username = $1")
+        .bind(&payload.username)
+        .fetch_optional(db.as_ref())
         .await;
 
-    // extract password from first row, second column of db_result
-    let db_password = &db_result.unwrap()[0].1;
+    // Handle database errors
+    let user = match user {
+      Ok(Some(user)) => user,
+      Ok(None) => return Err(Error::InvalidCredentials),
+      Err(e) => {
+          println!("->> Database error: {:?}", e);
+          return Err(Error::GenericError);
+      }
+    };
+
+
+    // let db_result = db
+    //     .call(move |conn| {
+    //         let mut stmt =
+    //             conn.prepare("SELECT username, password FROM users WHERE username = ?1")?;
+
+    //         let rows = stmt.query_map(params![&username], |row| Ok((row.get(0)?, row.get(1)?)))?;
+
+    //         let results: Vec<(String, String)> = rows.filter_map(|res| res.ok()).collect();
+    //         Ok(results)
+    //     })
+    //     .await;
+
+    // extract password from user tuple
+    let db_password = &user.1;
 
     // verify password
     let is_correct = auth::verify_password(&payload.password, db_password).await?;
@@ -247,7 +261,7 @@ pub async fn api_login(
 )]
 
 pub async fn api_register(
-    db: State<Arc<Connection>>,
+    db: State<Arc<DbPool>>,
     cookies: Cookies,
     headers: HeaderMap,
     body: Bytes,
@@ -298,7 +312,7 @@ pub async fn api_register(
 }
 
 pub async fn api_register_logic(
-    db: State<Arc<Connection>>,
+    db: State<Arc<DbPool>>,
     cookies: Cookies,
     payload: RegisterRequest, // Request body extracted by the helper method above.
 ) -> impl IntoResponse {
@@ -309,26 +323,24 @@ pub async fn api_register_logic(
         return Err(Error::InvalidCredentials);
     }
 
-    let username = payload.username.clone();
-    let email = payload.email.clone();
+    // Check if username or email already exists
+    let user_exists = sqlx::query_scalar::<_, bool>(
+      "SELECT EXISTS(SELECT 1 FROM users WHERE username = $1 OR email = $2)"
+    )
+    .bind(&payload.username)
+    .bind(&payload.email)
+    .fetch_one(db.as_ref())
+    .await;
 
-    // check if username already exists
-    let res = db
-        .call(move |conn| {
-            let mut stmt = conn.prepare("SELECT 1 FROM users WHERE username = ?1 OR email = ?2")?;
-            let mut rows = stmt.query(params![username, email])?;
-            Ok(rows.next()?.is_some())
-        })
-        .await;
-
-    // if username exists, return error
-    if let Ok(true) = res {
-        return Err(Error::UsernameOrEmailExists);
+    // If username exists, return error
+    match user_exists {
+      Ok(true) => return Err(Error::UsernameOrEmailExists),
+      Err(e) => {
+          println!("->> Database error: {:?}", e);
+          return Err(Error::GenericError);
+      }
+      _ => {}
     }
-
-    // since the username is being "used" twice, we have to clone it,
-    // else the first usage in the db function will consume it.
-    // the original payload.username is used for the db function, username_token is used for the token function
 
     // clone username for token generation
     let username_token = payload.username.clone();
@@ -336,35 +348,40 @@ pub async fn api_register_logic(
     // hash password
     let hashed_password = hash_password(&payload.password).await?;
 
-    // insert payload into db
-    let res = db
-        .call(move |conn| {
-            conn.execute(
-                "INSERT INTO users (username, email, password) VALUES (?1, ?2, ?3)",
-                params![&payload.username, &payload.email, &hashed_password], // note we insert hashed password
-            )
-            .map_err(tokio_rusqlite::Error::from) // we have to convert the error type, else rust will complain
-        })
-        .await?;
+    // Insert new user into database
+    let result = sqlx::query(
+      "INSERT INTO users (username, email, password) VALUES ($1, $2, $3)"
+    )
+    .bind(&payload.username)
+    .bind(&payload.email)
+    .bind(&hashed_password)
+    .execute(db.as_ref())
+    .await;
 
-    // sql returns number of affected rows, so we check if it's 1
-    if res == 1 {
-        // create token, using function in auth.rs
-        // it returns a Result<String>, so we unwrap it
-        let token = create_token(&username_token).unwrap();
-        // build cookie with token
-        let cookie = Cookie::build((TOKEN, token))
-            .http_only(true)
-            .secure(true)
-            .build();
-        // add cookie to response
-        cookies.add(cookie);
+    match result {
+      Ok(pg_result) => {
+          if pg_result.rows_affected() == 1 {
+              // Create token
+              let token = create_token(&username_token).unwrap();
+              // Build cookie with token
+              let cookie = Cookie::build((TOKEN, token))
+                  .http_only(true)
+                  .secure(true)
+                  .build();
+              // Add cookie to response
+              cookies.add(cookie);
 
-        // Redirect to "/"
-        Ok(axum::response::Redirect::to("/").into_response())
-    } else {
-        Err(Error::InvalidCredentials)
-    }
+              // Redirect to "/"
+              Ok(axum::response::Redirect::to("/").into_response())
+          } else {
+              Err(Error::InvalidCredentials)
+          }
+      }
+      Err(e) => {
+          println!("->> Failed to insert user: {:?}", e);
+          Err(Error::GenericError)
+      }
+  }
 }
 
 // ---------------------------------------------------
@@ -375,7 +392,7 @@ pub async fn api_register_logic(
   (status = 200, description = "Logout successful", body = LogoutResponse),
   ),
 )]
-pub async fn api_logout(State(_db): State<Arc<Connection>>, cookies: Cookies) -> impl IntoResponse {
+pub async fn api_logout(State(_db): State<Arc<DbPool>>, cookies: Cookies) -> impl IntoResponse {
     println!("->> Logout endpoint hit");
 
     let res = LogoutResponse {

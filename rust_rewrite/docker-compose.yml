@@ -15,6 +15,21 @@ services:
     restart: unless-stopped
     environment:
       - RUST_LOG=debug
+      - DATABASE_URL=postgres://sauron:sauron@db:5432/sauron
+    networks:
+      - sauron-network
+  db:
+    image: postgres
+    container_name: postgres
+    environment:
+      POSTGRES_USER: sauron
+      POSTGRES_PASSWORD: sauron
+      POSTGRES_DB: sauron
+    ports:
+      - "5432:5432"
+    volumes:
+      - data:/var/lib/postgresql/data
+    restart: unless-stopped
     networks:
       - sauron-network
 
@@ -23,4 +38,6 @@ networks:
     driver: bridge
 
 volumes:
+  postgres_data:
+    driver: local
   data:
