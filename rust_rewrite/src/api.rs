@@ -11,6 +11,11 @@ use axum::body::Bytes;
 use axum::extract::State;
 use axum::http::HeaderMap;
 use axum::{
+    Router,
+    routing::get,
+    extract::MatchedPath,
+    middleware::{self, Next},
+    http::request,
     extract::Query,
     response::IntoResponse,
     routing::{get, post, put},
@@ -29,6 +34,13 @@ use reqwest::Client;
 
 use tracing::info;
 
+// Uses for metrics
+use std::{net::SocketAddr, time::Instant, future::ready};
+use metrics::{increment_counter, histogram};
+use metrics_exporter_prometheus::{PrometheusBuilder, PrometheusHandle};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+
 pub const TOKEN: &str = "auth_token";
 
 // god i hate regex
@@ -38,6 +50,13 @@ lazy_static! {
         r"^([a-z0-9_+]([a-z0-9_+.]*[a-z0-9_+])?)@([a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,6})"
     )
     .unwrap();
+}
+
+// Setup for the Prometheus recorder
+fn setup_metrics_recorder() -> PrometheusHandle {
+    PrometheusBuilder::new()
+        .install_recorder()
+        .expect("Failed to install Prometheus recorder")
 }
 
 pub fn routes(db: Arc<Connection>, repo: Arc<PageRepository>) -> Router {
@@ -417,6 +436,10 @@ pub async fn api_weather() -> impl IntoResponse {
     // Should be wrapped as Data, but that causes the compiler to complain.
     Json(response)
 }
+// ---------------------------------------------------
+// Prometheus metrics route
+// ---------------------------------------------------
+
 
 // ---------------------------------------------------
 // Dummy routes
