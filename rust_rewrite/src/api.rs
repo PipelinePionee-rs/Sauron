@@ -52,11 +52,25 @@ lazy_static! {
     .unwrap();
 }
 
-// Setup for the Prometheus recorder
-fn setup_metrics_recorder() -> PrometheusHandle {
-    PrometheusBuilder::new()
-        .install_recorder()
-        .expect("Failed to install Prometheus recorder")
+
+//Middleware to track HTTP request count and duration
+async fn track_metrics<B>(req: Request<B>, next: Next<B>) -> impl IntoResponse {
+    let start = Instant::now();
+
+    let method = req.method().clone();
+    let path = req
+        .extensions()
+        .get::<MatchedPath>()
+        .map(|p| p.as_str())
+        .unwrap_or("unknown");
+
+    let response = next.run(req).await;
+    let duration = start.elapsed().as_secs_f64();
+
+    increment_counter!("http_requests_total", "method" => method.as_str(), "path" => path);
+    histogram!("http_request_duration_seconds", duration, "method" => method.as_str(), "path" => path);
+
+    response
 }
 
 pub fn routes(db: Arc<Connection>, repo: Arc<PageRepository>, handle: PrometheusHandle) -> Router {
@@ -69,6 +83,7 @@ pub fn routes(db: Arc<Connection>, repo: Arc<PageRepository>, handle: Prometheus
         .route("/search", get(api_search).with_state(repo))
         .route("/metrics", get(move || ready(handle.render()))) // Only `search` uses PageRepository
         .with_state(db) // Other routes still use Connection
+        .layer(from_fn(track_metrics)) //Apply middleware to track all requests
 }
 
 // ---------------------------------------------------
@@ -440,27 +455,6 @@ pub async fn api_weather() -> impl IntoResponse {
 // ---------------------------------------------------
 // Prometheus metrics
 // ---------------------------------------------------
-
-//Middleware to track HTTP request count and duration
-async fn track_metrics<B>(req: Request<B>, next: Next<B>) -> impl IntoResponse {
-    let start = Instant::now();
-
-    let method = req.method().clone();
-    let path = req
-        .extensions()
-        .get::<MatchedPath>()
-        .map(|p| p.as_str())
-        .unwrap_or("unknown");
-
-    let response = next.run(req).await;
-    let duration = start.elapsed().as_secs_f64();
-
-    increment_counter!("http_requests_total", "method" => method.as_str(), "path" => path);
-    histogram!("http_request_duration_seconds", duration, "method" => method.as_str(), "path" => path);
-
-    response
-}
-
 #[tokio::main]
 async fn main() {
     // Set up tracing (not strictly necessary for metrics, but great for debugging)
