@@ -392,7 +392,7 @@ pub async fn api_register_logic(
   (status = 200, description = "Logout successful", body = LogoutResponse),
   ),
 )]
-pub async fn api_logout(State(_db): State<Arc<DbPool>>, cookies: Cookies) -> impl IntoResponse {
+pub async fn api_logout(cookies: Cookies) -> impl IntoResponse {
     println!("->> Logout endpoint hit");
 
     let res = LogoutResponse {

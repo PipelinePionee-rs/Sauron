@@ -44,12 +44,6 @@ impl PageRepository {
 }
 }
 
-async fn run_migrations(pool: &DbPool) -> Result<(), sqlx::migrate::MigrateError> {
-  sqlx::migrate!("./migrations")
-      .run(pool)
-      .await
-}
-
 // impl PageRepository {
 //     //Laver sin egen connection, med path som parameter.
 //     pub async fn new(db_path: &str) -> db_result<Self> {

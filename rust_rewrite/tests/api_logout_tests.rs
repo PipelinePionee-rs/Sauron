@@ -1,16 +1,11 @@
-use std::sync::Arc;
-
-use axum::{body::to_bytes, extract::State, response::IntoResponse};
+use axum::{body::to_bytes, response::IntoResponse};
 use hyper::StatusCode;
 use rust_rewrite::api::{api_logout, TOKEN};
 use serde_json::{json, Value};
-use tokio_rusqlite::Connection;
 use tower_cookies::{Cookie, Cookies};
 
-#[tokio::test]
+#[sqlx::test]
 async fn test_logout_success() {
-    // Create an in-memory database (even though logout doesn't use it)
-    let db = Arc::new(Connection::open_in_memory().await.unwrap());
 
     // Create cookies with an auth token
     let cookies = Cookies::default();
@@ -23,7 +18,7 @@ async fn test_logout_success() {
     );
 
     // Call the logout endpoint
-    let response = api_logout(State(db), cookies.clone()).await.into_response();
+    let response = api_logout(cookies.clone()).await.into_response();
 
     // Check status code is OK
     assert_eq!(response.status(), StatusCode::OK);

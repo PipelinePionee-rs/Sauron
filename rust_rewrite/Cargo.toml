@@ -45,3 +45,7 @@ sqlx = { version = "0.8.5" , features = ["runtime-tokio", "tls-rustls", "postgre
 [dev-dependencies]
 anyhow = "1"
 httpc-test = "0.1.0" # for testing HTTP requests
+dotenv = "0.15"
+
+[build-dependencies]
+dotenv = "0.15"
