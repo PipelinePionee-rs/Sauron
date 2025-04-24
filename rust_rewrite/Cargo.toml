@@ -41,6 +41,8 @@ chrono = "0.4" # needed for setting expiration time for JWT
 tracing-subscriber = { version = "0.3.19", features = ["fmt", "json"]}
 tracing = "0.1.41"
 
+prometheus = "0.13"
+
 [dev-dependencies]
 anyhow = "1"
 httpc-test = "0.1.0" # for testing HTTP requests

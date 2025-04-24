@@ -22,12 +22,12 @@ services:
     image: prom/prometheus:latest
     container_name: prometheus
     ports:
-      -"9090:9090"
+      - "9090:9090"
     volumes:
-    - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     restart: unless-stopped
     networks:
-    - sauron-network
+      - sauron-network
 
   grafana:
     image: grafana/grafana:latest
@@ -38,9 +38,9 @@ services:
       - grafana-data:/var/lib/grafana
     restart: unless-stopped
     depends_on:
-    - prometheus
+      - prometheus
     networks:
-    - sauron-network
+      - sauron-network
 
 networks:
   sauron-network:
