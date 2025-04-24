@@ -22,6 +22,8 @@ use tokio::net::TcpListener;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
+use metrics_exporter_prometheus::{PrometheusBuilder, PrometheusHandle};
+
 /// to access the interactive OpenAPI documentation, go to localhost:8080/swagger-ui
 /// to access the OpenAPI JSON, go to localhost:8080/api-doc/openapi.json
 

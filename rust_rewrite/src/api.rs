@@ -8,17 +8,17 @@ use crate::models::{
     LoginResponse, LogoutResponse, QueryParams, RegisterRequest, RegisterResponse, WeatherResponse,
 };
 use axum::body::Bytes;
+use reqwest::Request;
 use axum::extract::State;
 use axum::http::HeaderMap;
 use axum::{
     Router,
     routing::get,
     extract::MatchedPath,
-    middleware::{self, Next},
-    http::request,
+    middleware::{Next, from_fn},
     extract::Query,
     response::IntoResponse,
-    routing::{get, post, put},
+    routing::{post, put},
     Json,
 };
 
@@ -35,10 +35,9 @@ use reqwest::Client;
 use tracing::info;
 
 // Uses for metrics
-use std::{net::SocketAddr, time::Instant, future::ready};
+use std::{time::Instant, future::ready};
 use metrics::{increment_counter, histogram};
-use metrics_exporter_prometheus::{PrometheusBuilder, PrometheusHandle};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use metrics_exporter_prometheus::PrometheusHandle;
 
 
 pub const TOKEN: &str = "auth_token";
@@ -53,25 +52,6 @@ lazy_static! {
 }
 
 
-//Middleware to track HTTP request count and duration
-async fn track_metrics<B>(req: Request<B>, next: Next<B>) -> impl IntoResponse {
-    let start = Instant::now();
-
-    let method = req.method().clone();
-    let path = req
-        .extensions()
-        .get::<MatchedPath>()
-        .map(|p| p.as_str())
-        .unwrap_or("unknown");
-
-    let response = next.run(req).await;
-    let duration = start.elapsed().as_secs_f64();
-
-    increment_counter!("http_requests_total", "method" => method.as_str(), "path" => path);
-    histogram!("http_request_duration_seconds", duration, "method" => method.as_str(), "path" => path);
-
-    response
-}
 
 pub fn routes(db: Arc<Connection>, repo: Arc<PageRepository>, handle: PrometheusHandle) -> Router {
     Router::new()
@@ -83,7 +63,6 @@ pub fn routes(db: Arc<Connection>, repo: Arc<PageRepository>, handle: Prometheus
         .route("/search", get(api_search).with_state(repo))
         .route("/metrics", get(move || ready(handle.render()))) // Only `search` uses PageRepository
         .with_state(db) // Other routes still use Connection
-        .layer(from_fn(track_metrics)) //Apply middleware to track all requests
 }
 
 // ---------------------------------------------------
