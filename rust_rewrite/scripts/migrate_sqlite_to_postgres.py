@@ -5,7 +5,7 @@ from datetime import datetime
 def migrate_data():
     # Connect to SQLite
     sqlite_conn = sqlite3.connect('../data/sauron.db')
-    sqlite_cur = sqlite_conn.cursor()
+    sqlite_cursor = sqlite_conn.cursor()
 
     # Connect to PostgreSQL
     pg_conn = psycopg2.connect(
@@ -15,25 +15,25 @@ def migrate_data():
         host="localhost",
         port="5432"
     )
-    pg_cur = pg_conn.cursor()
+    pg_cursor = pg_conn.cursor()
 
     try:
         # Migrate pages table
-        sqlite_cur.execute("SELECT title, url, language, last_updated, content FROM pages")
-        pages = sqlite_cur.fetchall()
+        sqlite_cursor.execute("SELECT title, url, language, last_updated, content FROM pages")
+        pages = sqlite_cursor.fetchall()
         
         for page in pages:
-            pg_cur.execute("""
+            pg_cursor.execute("""
                 INSERT INTO pages (title, url, language, last_updated, content)
                 VALUES (%s, %s, %s, %s, %s)
             """, page)
 
         # Migrate users table
-        sqlite_cur.execute("SELECT username, email, password FROM users")
-        users = sqlite_cur.fetchall()
+        sqlite_cursor.execute("SELECT username, email, password FROM users")
+        users = sqlite_cursor.fetchall()
         
         for user in users:
-            pg_cur.execute("""
+            pg_cursor.execute("""
                 INSERT INTO users (username, email, password)
                 VALUES (%s, %s, %s)
             """, user)
