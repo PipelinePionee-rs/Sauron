@@ -9,8 +9,8 @@ use crate::models::{
 };
 use axum::body::Bytes;
 use reqwest::Request;
-use axum::extract::State;
-use axum::http::HeaderMap;
+use axum::extract::{Request, State};
+use axum::http::{request, response, HeaderMap};
 use axum::{
     Router,
     routing::get,
@@ -61,7 +61,7 @@ pub fn routes(db: Arc<Connection>, repo: Arc<PageRepository>, handle: Prometheus
         .route("/logout", get(api_logout))
         .route("/weather", get(api_weather))
         .route("/search", get(api_search).with_state(repo))
-        .route("/metrics", get(move || ready(handle.render()))) // Only `search` uses PageRepository
+        .route("/metrics", get(move || ready(handle.render()))) 
         .with_state(db) // Other routes still use Connection
 }
 
@@ -430,6 +430,31 @@ pub async fn api_weather() -> impl IntoResponse {
 
     // Should be wrapped as Data, but that causes the compiler to complain.
     Json(response)
+}
+// ---------------------------------------------------
+// Metrics 
+// ---------------------------------------------------
+async fn track_metrics<B>(
+    path: MatchedPath,
+    request_method: hyper::Method,
+    request: axum::extract::Request<B>,
+    next: Next,
+) -> impl IntoResponse {
+    let start = Instant::now();
+    let path = path.as_str().to_owned();
+    
+    //Record request counter
+    let labels = [("method", request_method.to_string()), ("path", path.clone())];
+    increment_counter!("http_requests_total", &labels);
+
+    //Process the request
+    let response = next.run(request).await;
+
+    //Record request duration
+    let latency = start.elapsed().as_secs_f64();
+    histogram!("http_request_duration_seconds", latency, &labels);
+
+    response
 }
 
 // ---------------------------------------------------
