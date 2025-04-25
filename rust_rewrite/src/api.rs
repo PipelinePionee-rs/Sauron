@@ -62,7 +62,8 @@ pub fn routes(db: Arc<Connection>, repo: Arc<PageRepository>, handle: Prometheus
         .route("/weather", get(api_weather))
         .route("/search", get(api_search).with_state(repo))
         .route("/metrics", get(move || ready(handle.render()))) 
-        .with_state(db) // Other routes still use Connection
+        .with_state(db)
+        .layer(axum::middleware::from_fn(track_metrics))
 }
 
 // ---------------------------------------------------
