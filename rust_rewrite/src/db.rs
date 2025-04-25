@@ -6,7 +6,7 @@ pub type DbPool = Pool<Postgres>;
 
 pub async fn create_db_connection() -> std::result::Result<Pool<Postgres>, sqlx::Error> {
     // Load the database URL from an environment variable
-    let database_url = env::var("DATABASE_URL").unwrap_or_else(|_| "postgres://postgres:postgres@db/sauron".to_string());
+    let database_url = env::var("DATABASE_URL").unwrap();
 
     info!("->> Attempting to connect to database at {}", database_url);
     match PgPoolOptions::new()

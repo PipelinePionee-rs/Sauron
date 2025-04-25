@@ -1,19 +1,22 @@
 import sqlite3
 import psycopg2
 from datetime import datetime
+from dotenv import load_dotenv
+import os
 
 def migrate_data():
+    load_dotenv()
     # Connect to SQLite
     sqlite_conn = sqlite3.connect('../data/sauron.db')
     sqlite_cursor = sqlite_conn.cursor()
 
     # Connect to PostgreSQL
     pg_conn = psycopg2.connect(
-        dbname="sauron",
-        user="sauron",
-        password="sauron",
-        host="localhost",
-        port="5432"
+        dbname=os.getenv("POSTGRES_DB"),
+        user=os.getenv("POSTGRES_USER"),
+        password=os.getenv("POSTGRES_PASSWORD"),
+        host= os.getenv("POSTGRES_HOST", "localhost"),
+        port= os.getenv("POSTGRES_PORT", "5432")
     )
     pg_cursor = pg_conn.cursor()
 
