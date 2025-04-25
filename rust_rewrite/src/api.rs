@@ -8,16 +8,16 @@ use crate::models::{
     LoginResponse, LogoutResponse, QueryParams, RegisterRequest, RegisterResponse, WeatherResponse,
 };
 use axum::body::Bytes;
-use reqwest::Request;
-use axum::extract::{Request, State};
-use axum::http::{request, response, HeaderMap};
+//use reqwest::Request;
+use axum::extract::State;
+use axum::http::{response, HeaderMap}; //Request?
 use axum::{
     Router,
     routing::get,
     extract::MatchedPath,
-    middleware::{Next, from_fn},
+    middleware::{self, Next},
     extract::Query,
-    response::IntoResponse,
+    response::{IntoResponse,Response},
     routing::{post, put},
     Json,
 };
@@ -35,8 +35,8 @@ use reqwest::Client;
 use tracing::info;
 
 // Uses for metrics
-use std::{time::Instant, future::ready};
-use metrics::{increment_counter, histogram};
+use metrics::increment_counter;
+use metrics::histogram;
 use metrics_exporter_prometheus::PrometheusHandle;
 
 
@@ -53,7 +53,7 @@ lazy_static! {
 
 
 
-pub fn routes(db: Arc<Connection>, repo: Arc<PageRepository>, handle: PrometheusHandle) -> Router {
+pub fn routes(db: Arc<Connection>, repo: Arc<PageRepository>, prometheus_handle: PrometheusHandle) -> Router { //, handle: PrometheusHandle
     Router::new()
         .route("/login", post(api_login))
         .route("/register", post(api_register))
@@ -61,9 +61,11 @@ pub fn routes(db: Arc<Connection>, repo: Arc<PageRepository>, handle: Prometheus
         .route("/logout", get(api_logout))
         .route("/weather", get(api_weather))
         .route("/search", get(api_search).with_state(repo))
-        .route("/metrics", get(move || ready(handle.render()))) 
+        .route("/metrics", get(move || async move{
+            prometheus_handle.render().into_response()
+        })) 
         .with_state(db)
-        .layer(axum::middleware::from_fn(track_metrics))
+        .layer(middleware::from_fn(track_metrics))
 }
 
 // ---------------------------------------------------
@@ -435,25 +437,21 @@ pub async fn api_weather() -> impl IntoResponse {
 // ---------------------------------------------------
 // Metrics 
 // ---------------------------------------------------
-async fn track_metrics<B>(
-    path: MatchedPath,
-    request_method: hyper::Method,
-    request: axum::extract::Request<B>,
-    next: Next,
-) -> impl IntoResponse {
-    let start = Instant::now();
-    let path = path.as_str().to_owned();
-    
-    //Record request counter
-    let labels = [("method", request_method.to_string()), ("path", path.clone())];
-    increment_counter!("http_requests_total", &labels);
+async fn track_metrics<B>(req: axum::extract::Request<B>, next: Next<B>) -> Response {
+    let method = req.method().clone();
+    let path = req
+        .extensions()
+        .get::<MatchedPath>()
+        .map(|p| p.as_str())
+        .unwrap_or("unknown");
 
-    //Process the request
-    let response = next.run(request).await;
+    let start = std::time::Instant::now();
 
-    //Record request duration
-    let latency = start.elapsed().as_secs_f64();
-    histogram!("http_request_duration_seconds", latency, &labels);
+    let response = next.run(req).await;
+    let duration = start.elapsed().as_secs_f64();
+
+    increment_counter!("http_requests_total", "method" => method.as_str(), "path" => path);
+    histogram!("http_request_duration_seconds", duration, "method" => method.as_str(), "path" => path);
 
     response
 }

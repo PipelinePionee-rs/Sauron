@@ -22,7 +22,14 @@ use tokio::net::TcpListener;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
+use prometheus::{Encoder, TextEncoder, Registry, IntCounter, IntGauge};
 use metrics_exporter_prometheus::{PrometheusBuilder, PrometheusHandle};
+use metrics::histogram;
+use metrics::increment_counter;
+
+
+
+//use metrics_exporter_prometheus::{PrometheusBuilder, PrometheusHandle};
 
 /// to access the interactive OpenAPI documentation, go to localhost:8080/swagger-ui
 /// to access the OpenAPI JSON, go to localhost:8080/api-doc/openapi.json
@@ -44,11 +51,11 @@ use metrics_exporter_prometheus::{PrometheusBuilder, PrometheusHandle};
     // structs are like classes in Java, but without methods
 struct ApiDoc; // this is the struct that will be used to generate the OpenAPI documentation
 
-fn setup_metrics_recorder() -> PrometheusHandle {
+/* fn setup_metrics_recorder() -> PrometheusHandle {
     PrometheusBuilder::new()
         .install_recorder()
         .expect("Failed to install Prometheus recorder")
-}
+} */
 
 #[tokio::main]
 async fn main() {
@@ -79,17 +86,21 @@ async fn main() {
     let repo = Arc::new(PageRepository::new("data/sauron.db").await.unwrap()); // Create PageRepository
 
     //Setup metrics
-    let prometheus_handle = setup_metrics_recorder();
+    let prometheus_handle = PrometheusBuilder::new()
+        .install_recorder()
+        .expect("Failed to install Prometheus recorder");
 
     let app = Router::new()
-        .nest("/api/", api::routes(db.clone(), repo.clone(), prometheus_handle)) // merge the routes from api.rs
+        .nest("/api/", api::routes(db.clone(), repo.clone(), prometheus_handle.clone())) // merge the routes from api.rs
         .merge(SwaggerUi::new("/doc/swagger-ui").url("/doc/api-doc/openapi.json", open_api_doc)) // add swagger ui, and openapi doc
         .layer(CookieManagerLayer::new())
-        // .layer(middleware::map_response(main_response_mapper))
-        .layer(CorsLayer::new().allow_credentials(true));
+        .layer(CorsLayer::new().allow_credentials(true))
+        .route("/metrics", axum::routing::get(move || async move {
+            prometheus_handle.render().into_response()
+        }));
 
-    // start server
     axum::serve(listener, app.into_make_service())
         .await
         .unwrap();
+
 }
