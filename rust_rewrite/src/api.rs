@@ -8,9 +8,8 @@ use crate::models::{
     LoginResponse, LogoutResponse, QueryParams, RegisterRequest, RegisterResponse, WeatherResponse,
 };
 use axum::body::Bytes;
-//use reqwest::Request;
 use axum::extract::State;
-use axum::http::{response, HeaderMap}; //Request?
+use axum::http::{response, HeaderMap};
 use axum::{
     Router,
     routing::get,
