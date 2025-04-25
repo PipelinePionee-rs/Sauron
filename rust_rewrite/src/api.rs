@@ -16,11 +16,16 @@ use axum::{
     routing::get,
     extract::MatchedPath,
     middleware::{self, Next},
-    extract::Query,
+    extract::{Query,Request},
     response::{IntoResponse,Response},
     routing::{post, put},
     Json,
+    body::Body
 };
+use prometheus::{register_counter, register_histogram, Counter, Histogram, Encoder, TextEncoder};
+use std::time::Instant;
+
+
 
 use crate::repository::PageRepository;
 use hyper::StatusCode;
@@ -51,6 +56,13 @@ lazy_static! {
     .unwrap();
 }
 
+async fn metrics() -> String {
+    let encoder = TextEncoder::new();
+    let metric_families = prometheus::gather();
+    let mut buffer = Vec::new();
+    encoder.encode(&metric_families, &mut buffer).unwrap();
+    String::from_utf8(buffer).unwrap()
+}
 
 
 pub fn routes(db: Arc<Connection>, repo: Arc<PageRepository>, prometheus_handle: PrometheusHandle) -> Router { //, handle: PrometheusHandle
@@ -61,9 +73,7 @@ pub fn routes(db: Arc<Connection>, repo: Arc<PageRepository>, prometheus_handle:
         .route("/logout", get(api_logout))
         .route("/weather", get(api_weather))
         .route("/search", get(api_search).with_state(repo))
-        .route("/metrics", get(move || async move{
-            prometheus_handle.render().into_response()
-        })) 
+        .route("/metrics", get(metrics)) 
         .with_state(db)
         .layer(middleware::from_fn(track_metrics))
 }
@@ -437,7 +447,22 @@ pub async fn api_weather() -> impl IntoResponse {
 // ---------------------------------------------------
 // Metrics 
 // ---------------------------------------------------
-async fn track_metrics<B>(req: axum::extract::Request<B>, next: Next<B>) -> Response {
+lazy_static! {
+    static ref HTTP_REQUESTS_TOTAL: Counter = register_counter!(
+        "http_requests_total",
+        "Total number of HTTP requests"
+    ).unwrap();
+    static ref HTTP_REQUEST_DURATION_SECONDS: Histogram = register_histogram!(
+        "http_request_duration_seconds",
+        "HTTP request duration in seconds"
+    ).unwrap();
+}
+
+async fn track_metrics<B>(req: Request<B>, next: Next) -> Response<Body>
+where
+    B: Send + 'static,
+    Body: From<B>,
+{
     let method = req.method().clone();
     let path = req
         .extensions()
@@ -445,13 +470,16 @@ async fn track_metrics<B>(req: axum::extract::Request<B>, next: Next<B>) -> Resp
         .map(|p| p.as_str())
         .unwrap_or("unknown");
 
-    let start = std::time::Instant::now();
+    let start = Instant::now();
+
+    let (parts, body) = req.into_parts();
+    let req = Request::from_parts(parts, Body::from(body));
 
     let response = next.run(req).await;
     let duration = start.elapsed().as_secs_f64();
 
-    increment_counter!("http_requests_total", "method" => method.as_str(), "path" => path);
-    histogram!("http_request_duration_seconds", duration, "method" => method.as_str(), "path" => path);
+    HTTP_REQUESTS_TOTAL.inc();
+    HTTP_REQUEST_DURATION_SECONDS.observe(duration);
 
     response
 }

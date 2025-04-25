@@ -96,7 +96,7 @@ async fn main() {
         .layer(CookieManagerLayer::new())
         .layer(CorsLayer::new().allow_credentials(true))
         .route("/metrics", axum::routing::get(move || async move {
-            prometheus_handle.render().into_response()
+            prometheus_handle.render()
         }));
 
     axum::serve(listener, app.into_make_service())
