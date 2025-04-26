@@ -3,11 +3,6 @@ services:
     container_name: sauron
     image: saurondev/sauron:latest
     build: .
-    # logging:
-      # driver: fluentd
-      # options:
-        # fluentd-address: tcp://159.69.8.92:24224
-        # tag: test.app
     ports:
       - "8084:8084"
     volumes:
@@ -16,7 +11,7 @@ services:
     restart: unless-stopped
     environment:
       - RUST_LOG=debug
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/test_db
     networks:
       - sauron-network
     depends_on:
@@ -26,9 +21,9 @@ services:
     image: postgres
     container_name: postgres
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}  
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: test_db
     ports:
       - "5432:5432"
     volumes:
@@ -38,7 +33,7 @@ services:
     networks:
       - sauron-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sauron"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 5

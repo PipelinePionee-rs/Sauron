@@ -32,7 +32,6 @@ jobs:
             buildx-${{ runner.os }}-${{ github.ref }}-
             buildx-${{ runner.os }}-
 
-      # Optional: Restore Rust build artifacts cache
       - name: Restore Rust cache
         uses: useblacksmith/cache@v5
         with:
@@ -43,37 +42,19 @@ jobs:
           restore-keys: |
             rust-${{ runner.os }}-
 
-      - name: Build container
+      # Instead of building just the API container, start the entire compose stack
+      - name: Start services with Docker Compose
         run: |
           cd rust_rewrite
-          docker buildx build \
-            --platform linux/amd64 \
-            --cache-from=type=local,src=/tmp/.buildx-cache \
-            --cache-to=type=local,dest=/tmp/.buildx-cache-new,mode=max \
-            --load -t sauron-api .
-
-      - name: Move Docker build cache
-        if: always()
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
-
+          docker-compose -f docker-compose.test.yml build
+          docker-compose -f docker-compose.test.yml up -d
+      
+      # Save the build cache
       - name: Save Docker build cache
         uses: useblacksmith/cache@v5
         with:
           path: /tmp/.buildx-cache
           key: buildx-${{ runner.os }}-${{ github.ref }}-${{ github.sha }}
-
-      - name: Prepare database directory
-        run: |
-          mkdir -p rust_rewrite/data
-          touch rust_rewrite/data/sauron.db
-
-      - name: Start container
-        run: |
-          docker run -d -p 8084:8084 \
-            -v $(pwd)/rust_rewrite/data:/app/data \
-            --name sauron-container sauron-api
 
       - name: Wait for application to start
         run: |
@@ -81,7 +62,7 @@ jobs:
           docker ps -a
 
           echo "Container logs:"
-          docker logs sauron-container
+          docker logs sauron
 
           echo "Starting health check..."
           for i in {1..30}; do
@@ -92,13 +73,15 @@ jobs:
             echo "Waiting for application to start... ($i/30)"
             if [ $i -eq 1 ] || [ $((i % 5)) -eq 0 ]; then
               echo "Latest container logs:"
-              docker logs --tail 20 sauron-container
+              docker logs --tail 20 sauron
             fi
             sleep 2
           done
           echo "Application failed to start within 60 seconds"
           echo "Final container logs:"
-          docker logs sauron-container
+          docker logs sauron
+          echo "Database container logs:"
+          docker logs postgres
           exit 1
 
       - name: Test api/logout endpoint
@@ -111,6 +94,7 @@ jobs:
             exit 1
           fi
 
+      # Uncomment these tests when you're ready to test them
       # - name: Test Search endpoint
       #   run: |
       #     SEARCH_STATUS=$(curl -o /dev/null -s -w "%{http_code}\n" "http://localhost:8084/api/search?q=test")
@@ -136,4 +120,6 @@ jobs:
 
       - name: Cleanup
         if: always()
-        run: docker rm -f sauron-container
+        run: |
+          cd rust_rewrite
+          docker-compose -f docker-compose.test.yml down -v
