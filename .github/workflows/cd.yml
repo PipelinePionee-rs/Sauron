@@ -82,6 +82,7 @@ jobs:
         run: |
           ssh ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }} '
             cd ~/sauron_docker
+            rm .env
             touch .env
             echo "${{ secrets.SERVER_ENV }}" >> .env
             sudo docker compose pull
