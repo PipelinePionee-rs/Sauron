@@ -5,55 +5,32 @@ use axum::{
     extract::{Query, State},
     response::IntoResponse,
 };
+use chrono::NaiveDateTime;
 use hyper::StatusCode;
 use rust_rewrite::{api::api_search, repository::PageRepository};
 use rust_rewrite::models::QueryParams;
 use serde_json::Value;
-use tokio_rusqlite::{params, Connection};
 
-#[tokio::test]
-async fn test_api_search_success() {
-    // Create an in-memory database.
-    let db = Connection::open_in_memory().await.unwrap();
-    let repo = Arc::new(PageRepository { connection: db }); // Wrap db in PageRepository
+use sqlx::PgPool;
+
+#[sqlx::test]
+async fn test_api_search_success(pool: PgPool) {
+    let repo = Arc::new(PageRepository { connection: pool }); // Wrap db in PageRepository
     
 
-    // Create the 'pages' table.
-    let create_table = repo.connection
-        .call(|conn| {
-            conn.execute(
-                "CREATE TABLE pages (
-                        title TEXT,
-                        url TEXT,
-                        language TEXT,
-                        last_updated TEXT,
-                        content TEXT
-                    )",
-                [],
-            )
-            .map_err(|err| err.into())
-        })
-        .await;
-    assert!(create_table.is_ok(), "Failed to create table");
-
     // Insert a test row.
-    let insert = repo.connection
-        .call(|conn| {
-            conn.execute(
-                "INSERT INTO pages (title, url, language, last_updated, content)
-                     VALUES (?1, ?2, ?3, ?4, ?5)",
-                params![
-                    "Test Title",
-                    "http://example.com",
-                    "en",
-                    "2025-02-19",
-                    "Some content here"
-                ],
-            )
-            .map_err(|err| err.into())
-        })
-        .await;
-    assert!(insert.is_ok(), "Failed to insert test data");
+    sqlx::query(
+        "INSERT INTO pages (title, url, language, last_updated, content)
+         VALUES ($1, $2, $3, $4, $5)",
+    )
+    .bind("Test Title")
+    .bind("http://example.com")
+    .bind("en")
+    .bind(NaiveDateTime::parse_from_str("2025-02-19 00:00:00", "%Y-%m-%d %H:%M:%S").unwrap()) // Use NaiveDateTime to satisfy the SQLx type
+    .bind("Some content here")
+    .execute(&repo.connection)
+    .await
+    .expect("Failed to insert test data");
 
     // Build a query with a nonempty 'q' parameter.
     let query_params = QueryParams {
@@ -91,11 +68,9 @@ async fn test_api_search_success() {
 } 
 
 
-#[tokio::test]
-async fn test_api_search_empty_query() {
-    // Even though the DB isn’t used when 'q' is empty, we still create one.
-    let db_connection = Connection::open_in_memory().await.unwrap();
-    let repo = Arc::new(PageRepository {connection: db_connection});
+#[sqlx::test]
+async fn test_api_search_empty_query(pool: PgPool) {
+    let repo = Arc::new(PageRepository { connection: pool });
 
     let query_params = QueryParams {
         q: Some("    ".to_string()), // q is empty after trimming.
@@ -114,11 +89,15 @@ async fn test_api_search_empty_query() {
     );
 }
 
-#[tokio::test]
-async fn test_api_search_db_error() {
-    // Create an in-memory database but do NOT create the 'pages' table.
-    let db_connection = Connection::open_in_memory().await.unwrap();
-    let repo = Arc::new(PageRepository {connection: db_connection});
+#[sqlx::test]
+async fn test_api_search_db_error(pool: PgPool) {
+    let repo = Arc::new(PageRepository { connection: pool });
+
+    // drop the table to force a database error.
+    sqlx::query("DROP TABLE IF EXISTS pages")
+        .execute(&repo.connection)
+        .await
+        .expect("Failed to drop table");
 
     let query_params = QueryParams {
         q: Some("test".to_string()),
