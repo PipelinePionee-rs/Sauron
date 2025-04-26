@@ -186,3 +186,4 @@ cython_debug/
 
 sauron.db
 quick_dev.rs
+.DS_Store
