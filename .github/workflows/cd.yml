@@ -68,6 +68,7 @@ jobs:
       - name: Copy docker-compose.yml to server
         run: |
           scp ./rust_rewrite/docker-compose.yml ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}:~/sauron_docker
+          scp ./rust_rewrite/migrations/* ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}:~/sauron_docker/migrations/
 
       # We need to temporarily change the ownership of the static files to the www-data user
       # because the static files are owned by the root user
