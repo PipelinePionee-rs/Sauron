@@ -39,8 +39,6 @@ use reqwest::Client;
 use tracing::info;
 
 // Uses for metrics
-use metrics::increment_counter;
-use metrics::histogram;
 use metrics_exporter_prometheus::PrometheusHandle;
 
 
