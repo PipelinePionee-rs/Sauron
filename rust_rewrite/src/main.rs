@@ -11,13 +11,13 @@ use std::sync::Arc;
 use tower_cookies::CookieManagerLayer;
 use tower_http::cors::CorsLayer;
 
-use tracing::{debug, error, info, warn};
+use tracing::info;
 use tracing_subscriber;
 
 pub use self::error::{Error, Result};
 use crate::db::create_db_connection;
 use crate::repository::PageRepository;
-use axum::{middleware, response::Response, Router};
+use axum::Router;
 use tokio::net::TcpListener;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -72,16 +72,11 @@ async fn main() {
     let listener = TcpListener::bind("0.0.0.0:8084").await.unwrap();
     info!("LISTENING on {:?}", listener.local_addr());
 
-    async fn main_response_mapper(res: Response) -> Response {
-        println!();
-        res
-    }
-
     let db = create_db_connection().await.unwrap(); // create new database connection
     let db = Arc::new(db); // to manage shared state
     let open_api_doc = ApiDoc::openapi();
 
-    let repo = Arc::new(PageRepository::new("data/sauron.db").await.unwrap()); // Create PageRepository
+    let repo = Arc::new(PageRepository::new(db.as_ref().clone()).await); // Create PageRepository
 
     //Setup metrics
     let prometheus_handle = PrometheusBuilder::new()

@@ -40,6 +40,7 @@ reqwest = { version = "0.12", features = ["json"] } # For HTTP requests.
 chrono = "0.4" # needed for setting expiration time for JWT
 tracing-subscriber = { version = "0.3.19", features = ["fmt", "json", "env-filter"]}
 tracing = "0.1.41"
+sqlx = { version = "0.8.5" , features = ["runtime-tokio", "tls-rustls", "postgres", "macros", "chrono", "json", "uuid"] } # async SQL library
 
 prometheus = "0.13"
 
@@ -49,3 +50,7 @@ metrics-exporter-prometheus = "0.8"
 [dev-dependencies]
 anyhow = "1"
 httpc-test = "0.1.0" # for testing HTTP requests
+dotenv = "0.15"
+
+[build-dependencies]
+dotenv = "0.15"
