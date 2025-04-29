@@ -2,7 +2,7 @@
 
 In our search engine project, we've embraced DevOps principles throughout our development process, transforming the whoknows_variations searchengine codebase into a modern Rust implementation while maintaining our JavaScript/HTML/CSS frontend.
 
-Firstly, we've chosen to frame our "How are you DevOps?" assignment through the CALMS framework because it provides a comprehensive lens that goes beyond technical practices alone. While tooling and automation are important aspects of DevOps, we recognize that successful DevOps implementation fundamentally requires cultural and organizational transformation.
+We've chosen to frame our "How are you DevOps?" assignment through the CALMS framework because it provides a comprehensive lens that goes beyond technical practices alone. While tooling and automation are important aspects of DevOps, we recognize that successful DevOps implementation fundamentally requires cultural and organizational transformation.
 However, we are not DevOps - But we have stayed committed to the elective and its learning goals - and endeavoured on a journey of continuous learning. 
 
 ## Culture, Automation, Lean, Measurement, and Sharing (CALMS)
@@ -25,4 +25,8 @@ Although our README and documentation are still evolving, they provide a startin
 These collaborative practices have fostered open communication and strengthened the connection between team members, supporting a culture of continuous learning.
 
 ##Improvements
-While we have made significant strides in adopting DevOps principles, there are several areas where we can further enhance our practices to become more efficient and effective. One key issue is communication. Team members need to improve their openness and the frequency of check-ins. As our team consists of individuals with varying levels of knowledge and experience, implementing pair programming or, at a minimum, increasing the sharing of progress on each assignment would be beneficial. This will foster a more collaborative environment and ensure that everyone is aligned and supported in their tasks.
+Throughout our DevOps journey, we've focused on applying key principles week by week to enhance our development process and team dynamics. Each week, we've concentrated on a specific aspect of DevOps. These weekly principles have guided our practices and helped us build a more efficient, collaborative, and resilient development environment.
+
+However, there are still areas where we can improve. Communication within the team needs enhancement; team members should increase their openness and the frequency of check-ins to ensure everyone is aligned and informed. Implementing pair programming or more frequent progress sharing can help bridge knowledge gaps and foster a more collaborative environment, especially given the diverse levels of experience within the team.
+
+By addressing these areas, we can further strengthen our DevOps culture, improve our overall productivity, and ensure that our development process remains agile and effective.
