@@ -9,13 +9,22 @@ use crate::models::{
 };
 use axum::body::Bytes;
 use axum::extract::State;
-use axum::http::HeaderMap;
+use axum::http::{response, HeaderMap};
 use axum::{
-    extract::Query,
-    response::IntoResponse,
-    routing::{get, post, put},
-    Json, Router,
+    Router,
+    routing::get,
+    extract::MatchedPath,
+    middleware::{self, Next},
+    extract::{Query,Request},
+    response::{IntoResponse,Response},
+    routing::{post, put},
+    Json,
+    body::Body
 };
+use prometheus::{register_counter, register_histogram, Counter, Histogram, Encoder, TextEncoder};
+use std::time::Instant;
+
+
 
 use crate::repository::PageRepository;
 use hyper::StatusCode;
@@ -29,6 +38,10 @@ use reqwest::Client;
 
 use tracing::info;
 
+// Uses for metrics
+use metrics_exporter_prometheus::PrometheusHandle;
+
+
 pub const TOKEN: &str = "auth_token";
 
 // god i hate regex
@@ -40,15 +53,26 @@ lazy_static! {
     .unwrap();
 }
 
-pub fn routes(db: Arc<DbPool>, repo: Arc<PageRepository>) -> Router {
+async fn metrics() -> String {
+    let encoder = TextEncoder::new();
+    let metric_families = prometheus::gather();
+    let mut buffer = Vec::new();
+    encoder.encode(&metric_families, &mut buffer).unwrap();
+    String::from_utf8(buffer).unwrap()
+}
+
+
+pub fn routes(db: Arc<DbPool>, repo: Arc<PageRepository>, prometheus_handle: PrometheusHandle) -> Router { 
     Router::new()
         .route("/login", post(api_login))
         .route("/register", post(api_register))
         .route("/change_password", put(api_change_password))
         .route("/logout", get(api_logout))
         .route("/weather", get(api_weather))
-        .route("/search", get(api_search).with_state(repo)) // Only `search` uses PageRepository
-        .with_state(db) // Other routes still use Connection
+        .route("/search", get(api_search).with_state(repo))
+        .route("/metrics", get(metrics)) 
+        .with_state(db)
+        .layer(middleware::from_fn(track_metrics))
 }
 
 // ---------------------------------------------------
@@ -433,6 +457,45 @@ pub async fn api_weather() -> impl IntoResponse {
 
     // Should be wrapped as Data, but that causes the compiler to complain.
     Json(response)
+}
+// ---------------------------------------------------
+// Metrics 
+// ---------------------------------------------------
+lazy_static! {
+    static ref HTTP_REQUESTS_TOTAL: Counter = register_counter!(
+        "http_requests_total",
+        "Total number of HTTP requests"
+    ).unwrap();
+    static ref HTTP_REQUEST_DURATION_SECONDS: Histogram = register_histogram!(
+        "http_request_duration_seconds",
+        "HTTP request duration in seconds"
+    ).unwrap();
+}
+
+async fn track_metrics<B>(req: Request<B>, next: Next) -> Response<Body>
+where
+    B: Send + 'static,
+    Body: From<B>,
+{
+    let method = req.method().clone();
+    let path = req
+        .extensions()
+        .get::<MatchedPath>()
+        .map(|p| p.as_str())
+        .unwrap_or("unknown");
+
+    let start = Instant::now();
+
+    let (parts, body) = req.into_parts();
+    let req = Request::from_parts(parts, Body::from(body));
+
+    let response = next.run(req).await;
+    let duration = start.elapsed().as_secs_f64();
+
+    HTTP_REQUESTS_TOTAL.inc();
+    HTTP_REQUEST_DURATION_SECONDS.observe(duration);
+
+    response
 }
 
 // ---------------------------------------------------
