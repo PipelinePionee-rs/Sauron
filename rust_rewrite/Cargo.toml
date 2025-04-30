@@ -38,9 +38,14 @@ regex = "1.11.1"
 
 reqwest = { version = "0.12", features = ["json"] } # For HTTP requests.
 chrono = "0.4" # needed for setting expiration time for JWT
-tracing-subscriber = { version = "0.3.19", features = ["fmt", "json"]}
+tracing-subscriber = { version = "0.3.19", features = ["fmt", "json", "env-filter"]}
 tracing = "0.1.41"
 sqlx = { version = "0.8.5" , features = ["runtime-tokio", "tls-rustls", "postgres", "macros", "chrono", "json", "uuid"] } # async SQL library
+
+prometheus = "0.13"
+
+metrics = "0.18"
+metrics-exporter-prometheus = "0.8"
 
 [dev-dependencies]
 anyhow = "1"
