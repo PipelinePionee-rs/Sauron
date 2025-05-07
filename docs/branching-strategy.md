@@ -17,13 +17,17 @@ Vores valg om, at implementere en feature branching strategi, har både givet os
 
 ### Fordele
 *Isolation af udviklingsarbejde*
+En af de største fordele ved vores strategi har værest muligheden for at isolere vores arbejde på nye funktioner i seperate branches. Dette har gjort det muligt for os at udvikle og teste nye funktioner uden at risikere at påvirke produktionskoden i vores main branch eller den fælles udviklingskode i vores dev branch.
 
 *Fleksibilitet og samarbejde*
+Vores branching strategi har også gjort det muligt for os at arbejde fleksibelt og samtidig samarbejde effektivt. Flere gruppemedlemmer har kunnet arbejde parallellt på forskellige funktioner uden at komme i vejen for hinanden. Det har hjulpet til at øge vores produktivitet og gjort det nemmere at håndtere mere komplekse opgaver.
 
 *Kvalitetssikring*
+Inden merge af nye funktioner til dev eller main branch, har vi gennemført code review. Desuden har vi implementeret forskellige værktøjer, som hjælper os med at kvalitetssikre koden inden den kan merges. 
 
 ### Udfordringer
 *Merge konflikter*
+En af de største udfordringer, som kan opstå ud fra vores branching strategi er marge konflikter. Disse kan opstå specielt, når en feature har været under udvikling i længere tid. At løse de konflikter, som kan opstå, kan være komplekse og tidskrævende. Dog er det vores erfaring, at der gennem projektet har været et fåtal at merge konflikter. Dette kan skyldes, at vi allerede fra start af havde lagt en klar branching strategi og regler. Hvilket gjorde det nemmere for gruppemedlemmerne at følge og implementere i hvert deres arbejde.
 
 ### Hvad tager vi med os? 
 *Hyppig integration*
