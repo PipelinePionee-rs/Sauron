@@ -31,7 +31,10 @@ En af de største udfordringer, som kan opstå ud fra vores branching strategi e
 
 ### Hvad tager vi med os? 
 *Hyppig integration*
+En vigtig læring vi tager med, er at få at holde antalle af merge konflikter nede, er det vigtigt hyppigt at integrere branches. Hyppigheden og klarheden om selve strategien, har fra projektets begyndelse hjulpet os med at holde vores branches synkroniserede og reduceret antallet af merge konflikter. 
 
 *Dokumentation og kommunikation*
+Vi har indset, at dokumentation, klarhed og åben kommunikation er nødvendigt for at sikre, at alle gruppemedlemmer forstår og følger branching strategien. Det er netop disse elementer, som har været med til ikke kun at forbedre processen, men også gjort samarbejdet mere effektivt.
 
 *Kontinuerlig forbedring*
+Refleksion over forskellige dele af projektet og valgfaget, har vist sig værdifulde for os, da det har kunnet klargøre områder, hvor vi kan forbedre os. Derfor vil vi fortsætte med at evaluere og forbedre vores branching strategi. Desuden har vi også fundet en motivation eller mod, for at afprøve nye tilgange, lære af vores fejl - og på den måde kontinueligt forbedre vores udviklingsproces. 
