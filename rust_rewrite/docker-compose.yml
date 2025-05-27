@@ -37,6 +37,11 @@ services:
     restart: unless-stopped
     networks:
       - sauron-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
   
   prometheus:
     image: prom/prometheus:latest
