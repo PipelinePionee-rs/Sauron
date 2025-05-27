@@ -59,19 +59,6 @@ services:
        timeout: 5s
        retries: 5
 
-  #grafana:
-    #image: grafana/grafana:latest
-    #container_name: grafana
-    #ports:
-     # - "3000:3000"
-    #volumes:
-      #- grafana-data:/var/lib/grafana
-    #restart: unless-stopped
-    #depends_on:
-     # - prometheus
-    #networks:
-      #- sauron-network
-
 networks:
   sauron-network:
     driver: bridge
