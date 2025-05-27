@@ -9,7 +9,7 @@ use crate::models::{
 };
 use axum::body::Bytes;
 use axum::extract::State;
-use axum::http::{response, HeaderMap};
+use axum::http::{HeaderMap};
 use axum::{
     Router,
     routing::get,
@@ -21,7 +21,8 @@ use axum::{
     Json,
     body::Body
 };
-use prometheus::{register_counter, register_histogram, Counter, Histogram, Encoder, TextEncoder};
+use prometheus::{CounterVec, HistogramVec, GaugeVec, register_counter_vec, register_histogram_vec, register_gauge_vec};
+use prometheus::{Encoder, TextEncoder};
 use std::time::Instant;
 
 
@@ -97,6 +98,9 @@ pub async fn api_search(
         "Search endpoint hit with query: {:?} and lang: {:?}",
         query.q, query.lang
     );
+
+    let timer = DB_QUERY_DURATION.with_label_values(&["search"]).start_timer();
+
     // accepts 'q' and 'lang' query parameters
     let q = query.q.clone().unwrap_or_default();
 
@@ -107,8 +111,14 @@ pub async fn api_search(
     let lang = query.lang.clone().unwrap_or("en".to_string());
 
     match repo.search(lang, q).await {
-        Ok(data) => Json(json!({ "data": data })).into_response(),
-        Err(_err) => Error::GenericError.into_response(),
+        Ok(data) => {
+            timer.observe_duration();
+            Json(json!({ "data": data })).into_response()
+        },
+        Err(_err) => {
+            timer.observe_duration();
+            Error::GenericError.into_response()
+        },
     }
 }
 
@@ -207,7 +217,8 @@ pub async fn api_login(
 ) -> impl IntoResponse {
     info!("->> Login endpoint hit with payload: {:?}", payload);
 
-    
+    let timer = DB_QUERY_DURATION.with_label_values(&["get_user"]).start_timer();
+
     // Get user from database
     let user = sqlx::query_as::<_, (String, String)>("SELECT username, password FROM users WHERE username = $1")
         .bind(&payload.username)
@@ -223,19 +234,6 @@ pub async fn api_login(
           return Err(Error::GenericError);
       }
     };
-
-
-    // let db_result = db
-    //     .call(move |conn| {
-    //         let mut stmt =
-    //             conn.prepare("SELECT username, password FROM users WHERE username = ?1")?;
-
-    //         let rows = stmt.query_map(params![&username], |row| Ok((row.get(0)?, row.get(1)?)))?;
-
-    //         let results: Vec<(String, String)> = rows.filter_map(|res| res.ok()).collect();
-    //         Ok(results)
-    //     })
-    //     .await;
 
     // extract password from user tuple
     let db_password = &user.1;
@@ -265,6 +263,7 @@ pub async fn api_login(
         message: "Login successful".to_string(),
         status_code: 200,
     };
+    timer.observe_duration();
 
     Ok(Json(res))
 }
@@ -290,6 +289,7 @@ pub async fn api_register(
     headers: HeaderMap,
     body: Bytes,
 ) -> impl IntoResponse {
+
     // Check the content-type header to see if it's JSON or url-encoded form data.
     if let Some(content_type) = headers.get("Content-Type") {
         if content_type == "application/json" {
@@ -342,6 +342,8 @@ pub async fn api_register_logic(
 ) -> impl IntoResponse {
     info!("Register endpoint hit with payload: {:?}", payload);
 
+    let timer = DB_QUERY_DURATION.with_label_values(&["insert_user"]).start_timer();
+
     // Validate email format
     if !EMAIL_REGEX.is_match(&payload.email.to_lowercase()) {
         return Err(Error::InvalidCredentials);
@@ -381,6 +383,8 @@ pub async fn api_register_logic(
     .bind(&hashed_password)
     .execute(db.as_ref())
     .await;
+
+    timer.observe_duration();
 
     match result {
       Ok(pg_result) => {
@@ -462,38 +466,50 @@ pub async fn api_weather() -> impl IntoResponse {
 // Metrics 
 // ---------------------------------------------------
 lazy_static! {
-    static ref HTTP_REQUESTS_TOTAL: Counter = register_counter!(
+    static ref HTTP_REQUESTS: CounterVec = register_counter_vec!(
         "http_requests_total",
-        "Total number of HTTP requests"
+        "Total HTTP requests",
+        &["method", "path", "status"]
     ).unwrap();
-    static ref HTTP_REQUEST_DURATION_SECONDS: Histogram = register_histogram!(
+    static ref HTTP_REQUEST_DURATION: HistogramVec = register_histogram_vec!(
         "http_request_duration_seconds",
-        "HTTP request duration in seconds"
+        "HTTP request duration in seconds",
+        &["method", "path"]
+    ).unwrap();
+    static ref HTTP_IN_FLIGHT: GaugeVec = register_gauge_vec!(
+        "http_in_flight_requests",
+        "In-flight HTTP requests",
+        &["method", "path"]
+    ).unwrap();
+    // DB query metrics
+    static ref DB_QUERY_DURATION: HistogramVec = register_histogram_vec!(
+        "db_query_duration_seconds",
+        "Database query durations",
+        &["query"]
     ).unwrap();
 }
 
 async fn track_metrics<B>(req: Request<B>, next: Next) -> Response<Body>
-where
-    B: Send + 'static,
-    Body: From<B>,
+where B: Send + 'static, Body: From<B>
 {
-    let method = req.method().clone();
-    let path = req
+    let method = req.method().as_str().to_owned();
+    let path    = req
         .extensions()
         .get::<MatchedPath>()
-        .map(|p| p.as_str())
-        .unwrap_or("unknown");
+        .map(|p| p.as_str().to_string())
+        .unwrap_or_else(|| "unknown".into());
 
+    HTTP_IN_FLIGHT.with_label_values(&[&method, &path]).inc();
     let start = Instant::now();
 
     let (parts, body) = req.into_parts();
-    let req = Request::from_parts(parts, Body::from(body));
+    let response = next.run(Request::from_parts(parts, Body::from(body))).await;
+    let status = response.status().as_u16().to_string();
+    let elapsed = start.elapsed().as_secs_f64();
 
-    let response = next.run(req).await;
-    let duration = start.elapsed().as_secs_f64();
-
-    HTTP_REQUESTS_TOTAL.inc();
-    HTTP_REQUEST_DURATION_SECONDS.observe(duration);
+    HTTP_REQUESTS.with_label_values(&[&method, &path, &status]).inc();
+    HTTP_REQUEST_DURATION.with_label_values(&[&method, &path, &status]).observe(elapsed);
+    HTTP_IN_FLIGHT.with_label_values(&[&method, &path]).dec();
 
     response
 }
