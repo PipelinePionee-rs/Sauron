@@ -504,11 +504,10 @@ where B: Send + 'static, Body: From<B>
 
     let (parts, body) = req.into_parts();
     let response = next.run(Request::from_parts(parts, Body::from(body))).await;
-    let status = response.status().as_u16().to_string();
     let elapsed = start.elapsed().as_secs_f64();
 
-    HTTP_REQUESTS.with_label_values(&[&method, &path, &status]).inc();
-    HTTP_REQUEST_DURATION.with_label_values(&[&method, &path, &status]).observe(elapsed);
+    HTTP_REQUESTS.with_label_values(&[&method, &path]).inc();
+    HTTP_REQUEST_DURATION.with_label_values(&[&method, &path]).observe(elapsed);
     HTTP_IN_FLIGHT.with_label_values(&[&method, &path]).dec();
 
     response
