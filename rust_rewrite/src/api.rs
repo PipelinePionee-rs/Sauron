@@ -36,7 +36,7 @@ use tower_cookies::{Cookie, Cookies};
 
 use reqwest::Client;
 
-use tracing::info;
+use tracing::{error, info};
 
 // Uses for metrics
 use metrics_exporter_prometheus::PrometheusHandle;
@@ -128,42 +128,42 @@ pub async fn api_change_password(
   cookies: Cookies,
   payload: Json<ChangePasswordRequest>,
 ) -> Result<Json<ChangePasswordResponse>, Error> {
-  println!("->> Change password endpoint hit");
+  info!("Change password endpoint hit");
 
   // Get token from cookie
   let token = cookies.get(TOKEN).map(|c| c.value().to_string());
   if token.is_none() {
-      println!("->> No auth token found");
+      info!("No auth token found");
       return Err(Error::InvalidCredentials);
   }
 
   let token = token.unwrap();
   let masked_token = format!("{}...{}", &token[..4], &token[token.len() - 4..]);
-  println!("->> Found token: {:?}", masked_token);
+  info!("Found token: {:?}", masked_token);
   
   // Decode token to get username
   let claims = match auth::decode_token(&token) {
       Ok(claims) => {
-          println!("->> Successfully decoded token");
+          info!("Successfully decoded token");
           claims
       }
       Err(e) => {
-          println!("->> Failed to decode token: {:?}", e);
+          error!("Failed to decode token: {:?}", e);
           return Err(Error::InvalidCredentials);
       }
   };
 
   let username = claims.sub;
-  println!("->> Decoded username from token: {:?}", username);
+  info!("Decoded username from token: {:?}", username);
 
   // Hash new password
   let hashed_password = match hash_password(&payload.new_password).await {
       Ok(hash) => {
-          println!("->> Successfully hashed new password");
+          info!("Successfully hashed new password");
           hash
       }
       Err(e) => {
-          println!("->> Failed to hash password: {:?}", e);
+          error!("Failed to hash password: {:?}", e);
           return Err(Error::GenericError);
       }
   };
@@ -177,14 +177,14 @@ pub async fn api_change_password(
 
   match result {
       Ok(_) => {
-          println!("->> Successfully updated password in database");
+          info!("->> Successfully updated password in database");
           Ok(Json(ChangePasswordResponse {
               status_code: 200,
               message: "Password changed successfully".to_string(),
           }))
       }
       Err(e) => {
-          println!("->> Failed to update password in database: {:?}", e);
+          error!("->> Failed to update password in database: {:?}", e);
           Err(Error::GenericError)
       }
   }
@@ -205,7 +205,7 @@ pub async fn api_login(
     cookies: Cookies,
     payload: Json<LoginRequest>,
 ) -> impl IntoResponse {
-    println!("->> Login endpoint hit with payload: {:?}", payload);
+    info!("->> Login endpoint hit with payload: {:?}", payload);
 
     
     // Get user from database
@@ -219,7 +219,7 @@ pub async fn api_login(
       Ok(Some(user)) => user,
       Ok(None) => return Err(Error::InvalidCredentials),
       Err(e) => {
-          println!("->> Database error: {:?}", e);
+          error!("->> Database error: {:?}", e);
           return Err(Error::GenericError);
       }
     };
@@ -243,7 +243,7 @@ pub async fn api_login(
     // verify password
     let is_correct = auth::verify_password(&payload.password, db_password).await?;
 
-    println!("->> password match: {:?}", is_correct);
+    info!("password match: {:?}", is_correct);
 
     if !is_correct {
         return Err(Error::InvalidCredentials);
@@ -340,7 +340,7 @@ pub async fn api_register_logic(
     cookies: Cookies,
     payload: RegisterRequest, // Request body extracted by the helper method above.
 ) -> impl IntoResponse {
-    println!("->> Register endpoint hit with payload: {:?}", payload);
+    info!("Register endpoint hit with payload: {:?}", payload);
 
     // Validate email format
     if !EMAIL_REGEX.is_match(&payload.email.to_lowercase()) {
@@ -360,7 +360,7 @@ pub async fn api_register_logic(
     match user_exists {
       Ok(true) => return Err(Error::UsernameOrEmailExists),
       Err(e) => {
-          println!("->> Database error: {:?}", e);
+          info!("->> Database error: {:?}", e);
           return Err(Error::GenericError);
       }
       _ => {}
@@ -402,7 +402,7 @@ pub async fn api_register_logic(
           }
       }
       Err(e) => {
-          println!("->> Failed to insert user: {:?}", e);
+          error!("Failed to insert user: {:?}", e);
           Err(Error::GenericError)
       }
   }
@@ -417,7 +417,7 @@ pub async fn api_register_logic(
   ),
 )]
 pub async fn api_logout(cookies: Cookies) -> impl IntoResponse {
-    println!("->> Logout endpoint hit");
+    info!("Logout endpoint hit");
 
     let res = LogoutResponse {
         message: "Logout successful".to_string(),
@@ -438,7 +438,7 @@ pub async fn api_logout(cookies: Cookies) -> impl IntoResponse {
   ),
 )]
 pub async fn api_weather() -> impl IntoResponse {
-    println!("->> Weather endpoint hit");
+    info!("->> Weather endpoint hit");
 
     // Call the weather API.
     // Currently only fetches for Copenhagen. This can easily be changed, but I'm not sure how it'll interact with the simulation.
