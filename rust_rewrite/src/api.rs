@@ -469,7 +469,7 @@ lazy_static! {
     static ref HTTP_REQUESTS: CounterVec = register_counter_vec!(
         "http_requests_total",
         "Total HTTP requests",
-        &["method", "path", "status"]
+        &["method", "path"]
     ).unwrap();
     static ref HTTP_REQUEST_DURATION: HistogramVec = register_histogram_vec!(
         "http_request_duration_seconds",
