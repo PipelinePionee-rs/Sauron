@@ -3,11 +3,11 @@ services:
     container_name: sauron
     image: saurondev/sauron:latest
     build: .
-    # logging:
-      # driver: fluentd
-      # options:
-        # fluentd-address: tcp://159.69.8.92:24224
-        # tag: test.app
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: tcp://159.69.8.92:24224
+        tag: test.app
     ports:
       - "8084:8084"
     volumes:
