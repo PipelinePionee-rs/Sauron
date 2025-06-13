@@ -25,8 +25,6 @@ use prometheus::{CounterVec, HistogramVec, GaugeVec, register_counter_vec, regis
 use prometheus::{Encoder, TextEncoder};
 use std::time::Instant;
 
-
-
 use crate::repository::PageRepository;
 use hyper::StatusCode;
 use lazy_static::lazy_static;
