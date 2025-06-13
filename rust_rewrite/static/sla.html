@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Service Level Agreement (SLA)</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2em; background: #fafbfc; color: #222; }
+        h1, h2 { color: #2c3e50; }
+        table { border-collapse: collapse; width: 100%; margin-bottom: 1em; }
+        th, td { border: 1px solid #ddd; padding: 8px; }
+        th { background: #f4f4f4; }
+        code { background: #eee; padding: 2px 4px; border-radius: 3px; }
+        ul { margin-top: 0; }
+    </style>
+</head>
+<body>
+    <h1>Service Level Agreement (SLA)</h1>
+    <p><strong>Version:</strong> 1.0<br>
+    <strong>Date:</strong> 14/6-2025</p>
+
+    <h2>1. Definitions</h2>
+    <ul>
+        <li><strong>Service</strong>: The Sauron search API and web UI running at <code>https://sauron.tolana.dev</code></li>
+        <li><strong>Uptime</strong>: The percentage of time the Service is available to respond to valid HTTP requests.</li>
+        <li><strong>Downtime</strong>: Any period when the Service fails to respond within the agreed performance targets.</li>
+    </ul>
+
+    <h2>2. Service Availability</h2>
+    <ul>
+        <li><strong>Target Uptime:</strong> 99.5% per calendar month</li>
+        <li><strong>Measurement:</strong> Excluding scheduled maintenance windows (see §5), calculated as:<br>
+            <code>(Total Minutes – Downtime Minutes) / Total Minutes × 100</code>
+        </li>
+    </ul>
+
+    <h2>3. Performance</h2>
+    <ul>
+        <li><strong>API Response Time:</strong>
+            <ul>
+                <li>95th percentile of <code>/api/*</code> endpoints ≤ 500 ms</li>
+                <li>99th percentile of <code>/api/*</code> endpoints ≤ 1 s</li>
+            </ul>
+        </li>
+        <li><strong>Metrics:</strong> Monitored via Prometheus and Grafana dashboards; alerts fire if thresholds are breached for 5 minutes.</li>
+        <p><strong>Note:</strong> these figures are goals, actual performance may vary.</p>
+    </ul>
+
+    <h2>4. Support &amp; Incident Response</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Severity</th>
+                <th>Description</th>
+                <th>Resolution Target</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>P1 (Critical)</td>
+                <td>Service down or major functionality broken (e.g. search, register)</td>
+                <td>24 hours</td>
+            </tr>
+            <tr>
+                <td>P2 (High)</td>
+                <td>Significant degradation (slow responses, partial feature failure)</td>
+                <td>48 hours</td>
+            </tr>
+            <tr>
+                <td>P3 (Normal)</td>
+                <td>Minor issues (UI glitches, non-critical errors)</td>
+                <td>72 hours</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>5. Maintenance Windows</h2>
+    <ul>
+        <li>Regular maintenance (database migrations, deployment) will occur regularly, and shouldn't last more than a couple minutes.</li>
+        <li>Planned downtime during maintenance does not count against uptime.</li>
+    </ul>
+
+    <h2>6. Exclusions</h2>
+    <ul>
+        <li>Force majeure events (e.g. natural disasters, major internet outages).</li>
+        <li>Third-party outages (e.g. external API providers).</li>
+        <li>Customer network issues or misconfiguration.</li>
+    </ul>
+
+    <h2>7. Reporting &amp; Review</h2>
+    <ul>
+        <li>Monthly uptime and performance reports generated from Prometheus metrics.</li>
+    </ul>
+
+    <hr>
+</body>
+</html>
