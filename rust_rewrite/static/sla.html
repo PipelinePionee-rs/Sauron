@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Service Level Agreement (SLA)</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 2em;
+        background: #fafbfc;
+        color: #222;
+      }
+      h1,
+      h2 {
+        color: #2c3e50;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin-bottom: 1em;
+      }
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 8px;
+      }
+      th {
+        background: #f4f4f4;
+      }
+      code {
+        background: #eee;
+        padding: 2px 4px;
+        border-radius: 3px;
+      }
+      ul {
+        margin-top: 0;
+      }
+      .strike {
+        text-decoration: line-through;
+        color: #888;
+      }
+      .note {
+        color: #888;
+        font-size: 0.95em;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Service Level Agreement (SLA)</h1>
+    <p>
+      <strong>Version:</strong> 1.0<br />
+      <strong>Date:</strong> 14/6-2025
+    </p>
+
+    <h2>1. Service Scope</h2>
+    <ul>
+      <li>
+        <strong>Service:</strong> The Sauron search API and web UI at
+        <code>https://sauron.tolana.dev</code>
+      </li>
+      <li>
+        <strong>Features:</strong> User registration, authentication, search
+        functionality, and web-based results display.
+      </li>
+      <li>
+        <strong>Processes:</strong> Data indexing, query processing, user
+        management, and monitoring.
+      </li>
+    </ul>
+
+    <h2>2. Performance Metrics</h2>
+    <ul>
+      <li>
+        <strong>Target Uptime:</strong> 99.5% per calendar month (excluding
+        scheduled maintenance).
+      </li>
+      <li>
+        <strong>API Response Time:</strong>
+        <ul>
+          <li>95th percentile of <code>/api/*</code> endpoints ≤ 500 ms</li>
+          <li>99th percentile of <code>/api/*</code> endpoints ≤ 1 s</li>
+        </ul>
+      </li>
+      <li>
+        <strong>Measurement:</strong> Metrics monitored via Prometheus and
+        Grafana; alerts fire if thresholds are breached for 5 minutes.
+      </li>
+    </ul>
+    <strong>Note:</strong> These figures are goals; actual performance may
+      vary.
+
+    <h2>3. Response and Resolution</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Severity</th>
+          <th>Description</th>
+          <th>Resolution Target</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>P1 (Critical)</td>
+          <td>
+            Service down or major functionality broken (e.g. search, register)
+          </td>
+          <td>24 hours</td>
+        </tr>
+        <tr>
+          <td>P2 (High)</td>
+          <td>
+            Significant degradation (slow responses, partial feature failure)
+          </td>
+          <td>48 hours</td>
+        </tr>
+        <tr>
+          <td>P3 (Normal)</td>
+          <td>Minor issues (UI glitches, non-critical errors)</td>
+          <td>72 hours</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>4. Security Measures</h2>
+    <ul>
+      <li>
+        Encrypted connections (HTTPS/TLS) for all client-server communication.
+      </li>
+      <li>Regular security updates and vulnerability patching.</li>
+      <li>Role-based access control for sensitive operations.</li>
+      <li>Continuous monitoring and alerting for suspicious activity.</li>
+    </ul>
+
+    <h2>5. Compliance Standards</h2>
+    <ul>
+      <li>GDPR compliance for user data privacy and handling.</li>
+      <li>
+        Adherence to industry best practices for data protection and security.
+      </li>
+    </ul>
+
+    <h2>6. Maintenance Windows</h2>
+    <ul>
+      <li>
+        Regular maintenance (database migrations, deployment) will occur
+        regularly, and shouldn't last more than a couple minutes.
+      </li>
+      <li>
+        Planned downtime during maintenance does not count against uptime.
+      </li>
+    </ul>
+
+    <h2>7. Exclusions</h2>
+    <ul>
+      <li>
+        Force majeure events (e.g. natural disasters, major internet outages).
+      </li>
+      <li>Third-party outages (e.g. external API providers).</li>
+      <li>Customer network issues or misconfiguration.</li>
+    </ul>
+    <hr />
+  </body>
+</html>
